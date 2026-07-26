@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main account-main" tabindex="-1">
+    <section class="page-hero account-hero">
+        <div class="container">
+            <span class="eyebrow"><i class="bi bi-person-circle" aria-hidden="true"></i> Tài khoản</span>
+            <h1>Hồ sơ của bạn</h1>
+            <p>Cập nhật thông tin đăng nhập mà không làm thay đổi liên kết lịch sử theo MongoDB ID.</p>
+        </div>
+    </section>
+
+    <section class="container account-content">
+        <div class="account-layout">
+            <aside class="account-summary" aria-labelledby="accountSummaryTitle">
+                <div class="account-avatar" aria-hidden="true">
+                    <i class="bi bi-person"></i>
+                </div>
+                <h2 id="accountSummaryTitle" th:text="${account.fullName}">Người dùng</h2>
+                <p th:text="${account.email}">email@example.com</p>
+                <dl class="account-facts">
+                    <div>
+                        <dt>Quyền</dt>
+                        <dd><span class="account-role" th:text="${account.role}">USER</span></dd>
+                    </div>
+                    <div>
+                        <dt>Trạng thái</dt>
+                        <dd th:text="${account.enabled ? 'Đang hoạt động' : 'Đã khóa'}">Đang hoạt động</dd>
+                    </div>
+                    <div>
+                        <dt>Ngày tạo</dt>
+                        <dd th:text="${#temporals.format(account.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2026 08:00</dd>
+                    </div>
+                </dl>
+                <a class="btn btn-outline-primary w-100" th:href="@{/profile/change-password}">
+                    <i class="bi bi-key" aria-hidden="true"></i> Đổi mật khẩu
+                </a>
+            </aside>
+
+            <section class="account-panel" aria-labelledby="profileFormTitle">
+                <div class="account-panel-heading">
+                    <span>Thông tin cơ bản</span>
+                    <h2 id="profileFormTitle">Cập nhật hồ sơ</h2>
+                    <p>Sau khi lưu, bạn sẽ được yêu cầu đăng nhập lại để làm mới phiên an toàn.</p>
+                </div>
+                <form th:action="@{/profile}" th:object="${profileForm}" method="post"
+                      class="auth-form" novalidate>
+                    <div>
+                        <label class="form-label" for="fullName">Họ và tên</label>
+                        <input class="form-control" type="text" id="fullName" th:field="*{fullName}"
+                               autocomplete="name" minlength="2" maxlength="100"
+                               th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''" required>
+                        <div class="invalid-feedback" th:errors="*{fullName}">Họ và tên chưa hợp lệ.</div>
+                    </div>
+                    <div>
+                        <label class="form-label" for="email">Email</label>
+                        <input class="form-control" type="email" id="email" th:field="*{email}"
+                               autocomplete="email" maxlength="254"
+                               th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''" required>
+                        <div class="invalid-feedback" th:errors="*{email}">Email chưa hợp lệ.</div>
+                    </div>
+                    <div class="account-form-actions">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-check2-circle" aria-hidden="true"></i> Lưu thay đổi
+                        </button>
+                        <a class="btn btn-outline-primary" th:href="@{/history}">Xem lịch sử</a>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

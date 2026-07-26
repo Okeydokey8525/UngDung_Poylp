@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="about-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Giới thiệu</li>
+                </ol>
+            </nav>
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <span class="eyebrow">Về đề tài nghiên cứu</span>
+                    <h1>Khảo sát tích hợp VMamba vào YOLO26-seg cho phân đoạn polyp</h1>
+                    <p>Website là lớp giao diện minh họa cho quy trình nghiên cứu phân đoạn polyp từ ảnh nội soi
+                        đại trực tràng, giúp trình bày dữ liệu đầu vào, lựa chọn mô hình và kết quả trực quan.</p>
+                </div>
+                <div class="col-lg-5">
+                    <div class="research-scope-card">
+                        <span><i class="bi bi-mortarboard"></i> Phạm vi hiện tại</span>
+                        <strong>Giai đoạn 3D · baseline và VMamba thật</strong>
+                        <ul>
+                            <li>Giao diện Spring Boot + Thymeleaf</li>
+                            <li>Metadata lịch sử thật trong MongoDB</li>
+                            <li>Hai checkpoint YOLO26n đang chạy thật</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container section-space about-content">
+        <div class="row g-5">
+            <div class="col-lg-4">
+                <div class="about-sticky-nav">
+                    <span>Trong trang này</span>
+                    <a href="#objective">Mục tiêu nghiên cứu</a>
+                    <a href="#models">Mô hình khảo sát</a>
+                    <a href="#architecture">Quy trình hệ thống</a>
+                    <a href="#technology">Công nghệ</a>
+                    <a href="#limitations">Giới hạn</a>
+                </div>
+            </div>
+            <div class="col-lg-8">
+                <article class="about-section" id="objective">
+                    <span class="section-index">01</span>
+                    <h2>Mục tiêu nghiên cứu</h2>
+                    <p>Nghiên cứu tập trung khảo sát phương pháp tích hợp VMambaBlock vào YOLO26-seg trong bài toán
+                        phân đoạn polyp trên ảnh nội soi. Website hiện chạy thật cả checkpoint
+                        <code>YOLO26n-seg</code> và <code>YOLO26n-VMamba-seg</code> trên cùng API contract.</p>
+                    <div class="problem-card">
+                        <i class="bi bi-bullseye"></i>
+                        <div>
+                            <strong>Bài toán phân đoạn polyp</strong>
+                            <p>Xác định vùng điểm ảnh thuộc khu vực nghi ngờ polyp, tạo mask không gian thay vì chỉ
+                                dự đoán một nhãn cho toàn bộ ảnh.</p>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="about-section" id="models">
+                    <span class="section-index">02</span>
+                    <h2>Mô hình được khảo sát</h2>
+                    <div class="about-model-grid">
+                        <div>
+                            <span class="model-kicker">Baseline</span>
+                            <h3>YOLO26-seg</h3>
+                            <p>Được dùng làm cấu hình tham chiếu để tổ chức các thí nghiệm và so sánh.</p>
+                        </div>
+                        <div>
+                            <span class="model-kicker">Khối tích hợp</span>
+                            <h3>VMambaBlock</h3>
+                            <p>Khối VSS/SS2D-inspired được nghiên cứu để khai thác phụ thuộc không gian dài hạn trên
+                                feature map mức cao.</p>
+                        </div>
+                    </div>
+                    <p class="neutral-note"><i class="bi bi-info-circle"></i> Hiệu quả của biến thể tích hợp cần được
+                        đánh giá bằng thực nghiệm; giao diện không đưa ra kết luận vượt trội.</p>
+                </article>
+
+                <article class="about-section" id="architecture">
+                    <span class="section-index">03</span>
+                    <h2>Quy trình hệ thống dự kiến</h2>
+                    <p>Kiến trúc mục tiêu tách lớp giao diện Java khỏi dịch vụ suy luận Python và lớp lưu trữ.</p>
+                    <div class="architecture-flow" aria-label="Sơ đồ luồng hệ thống">
+                        <div class="architecture-node"><i class="bi bi-window"></i><span>Trình duyệt</span></div>
+                        <i class="bi bi-arrow-right"></i>
+                        <div class="architecture-node"><i class="bi bi-cup-hot"></i><span>Spring Boot</span></div>
+                        <i class="bi bi-arrow-right"></i>
+                        <div class="architecture-node"><i class="bi bi-braces"></i><span>Python AI API</span></div>
+                        <i class="bi bi-arrow-right"></i>
+                        <div class="architecture-node"><i class="bi bi-cpu"></i><span>Mô hình</span></div>
+                        <i class="bi bi-arrow-right"></i>
+                        <div class="architecture-node"><i class="bi bi-database"></i><span>MongoDB</span></div>
+                    </div>
+                    <p class="flow-caption">Spring Boot gửi ảnh multipart tới FastAPI, registry chọn đúng checkpoint
+                        baseline hoặc VMamba để tạo mask và MongoDB lưu metadata cùng đường dẫn ảnh.</p>
+                </article>
+
+                <article class="about-section" id="technology">
+                    <span class="section-index">04</span>
+                    <h2>Công nghệ sử dụng</h2>
+                    <div class="tech-grid">
+                        <span><i class="bi bi-cup-hot"></i> Java 17</span>
+                        <span><i class="bi bi-hexagon"></i> Spring Boot</span>
+                        <span><i class="bi bi-filetype-html"></i> Thymeleaf</span>
+                        <span><i class="bi bi-bootstrap"></i> Bootstrap 5</span>
+                        <span><i class="bi bi-database"></i> MongoDB</span>
+                        <span><i class="bi bi-code-slash"></i> FastAPI + YOLO26n + VMamba</span>
+                    </div>
+                </article>
+
+                <article class="about-section" id="limitations">
+                    <span class="section-index">05</span>
+                    <h2>Giới hạn của phiên bản</h2>
+                    <ul class="limitation-list">
+                        <li><i class="bi bi-dash-circle"></i><span>Ảnh gốc và overlay được lưu trong storage cục bộ; chưa có object storage hoặc cloud.</span></li>
+                        <li><i class="bi bi-dash-circle"></i><span>Chỉ kích hoạt hai checkpoint nano
+                            <code>YOLO26n-seg</code> và <code>YOLO26n-VMamba-seg</code>; tám cấu hình còn lại chưa được nối vào API.</span></li>
+                        <li><i class="bi bi-dash-circle"></i><span>Đã có Spring Security và ownership; chưa có OAuth, JWT hoặc xác thực đa yếu tố.</span></li>
+                        <li><i class="bi bi-dash-circle"></i><span>MongoDB chỉ lưu đường dẫn tương đối và metadata, không lưu chuỗi Base64.</span></li>
+                    </ul>
+                </article>
+
+                <div class="research-alert" role="note">
+                    <i class="bi bi-shield-exclamation"></i>
+                    <div>
+                        <strong>Cảnh báo nghiên cứu</strong>
+                        <span>PolypVision phục vụ nghiên cứu và minh họa, không phải thiết bị y tế và không thay thế
+                            chẩn đoán hoặc đánh giá của bác sĩ.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

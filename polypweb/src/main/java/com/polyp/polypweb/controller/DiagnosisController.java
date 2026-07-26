@@ -1,0 +1,300 @@
+package com.polyp.polypweb.controller;
+
+import com.polyp.polypweb.client.AiInferenceClient;
+import com.polyp.polypweb.client.AiServiceException;
+import com.polyp.polypweb.view.DiagnosisResultView;
+import com.polyp.polypweb.view.AiPredictionResponse;
+import com.polyp.polypweb.view.ModelOptionView;
+import com.polyp.polypweb.service.DiagnosisHistoryService;
+import com.polyp.polypweb.service.FileStorageService;
+import com.polyp.polypweb.service.StorageException;
+import com.polyp.polypweb.security.CurrentUserPrincipal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+@Controller
+public class DiagnosisController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DiagnosisController.class);
+    private static final Set<String> ACTIVE_MODEL_CODES = Set.of(
+            "yolo26n-seg",
+            "yolo26n-vmamba-seg"
+    );
+    private final DiagnosisHistoryService historyService;
+    private final AiInferenceClient aiInferenceClient;
+    private final FileStorageService storageService;
+
+    private static final List<ModelOptionView> MODEL_OPTIONS = List.of(
+            baseline("yolo26n-seg", "YOLO26n-seg", "Phiên bản nano, ưu tiên tốc độ và tài nguyên tính toán thấp."),
+            baseline("yolo26s-seg", "YOLO26s-seg", "Phiên bản small, cân bằng giữa tốc độ và khả năng biểu diễn."),
+            baseline("yolo26m-seg", "YOLO26m-seg", "Phiên bản medium với năng lực biểu diễn ở mức trung bình."),
+            baseline("yolo26l-seg", "YOLO26l-seg", "Phiên bản large dành cho cấu hình thử nghiệm lớn hơn."),
+            baseline("yolo26x-seg", "YOLO26x-seg", "Phiên bản extra-large dùng trong so sánh cấu hình."),
+            vmamba("yolo26n-vmamba-seg", "YOLO26n-VMamba-seg", "Biến thể nano tích hợp VMambaBlock ở feature map mức cao."),
+            vmamba("yolo26s-vmamba-seg", "YOLO26s-VMamba-seg", "Biến thể small phục vụ nghiên cứu phụ thuộc không gian dài hạn."),
+            vmamba("yolo26m-vmamba-seg", "YOLO26m-VMamba-seg", "Biến thể medium tích hợp khối VSS/SS2D-inspired."),
+            vmamba("yolo26l-vmamba-seg", "YOLO26l-VMamba-seg", "Biến thể large dùng để đánh giá ảnh hưởng của VMambaBlock."),
+            vmamba("yolo26x-vmamba-seg", "YOLO26x-VMamba-seg", "Biến thể extra-large cho cấu hình nghiên cứu mở rộng.")
+    );
+
+    public DiagnosisController(
+            DiagnosisHistoryService historyService,
+            AiInferenceClient aiInferenceClient,
+            FileStorageService storageService) {
+        this.historyService = historyService;
+        this.aiInferenceClient = aiInferenceClient;
+        this.storageService = storageService;
+    }
+
+    @GetMapping("/diagnose")
+    public String diagnose(Model model) {
+        addDiagnosePageData(model);
+        return "diagnose";
+    }
+
+    @PostMapping({"/diagnose", "/diagnose/mock"})
+    public String diagnoseImage(
+            @AuthenticationPrincipal CurrentUserPrincipal principal,
+            @RequestParam(value = "image", required = false) MultipartFile image,
+            @RequestParam(value = "modelType", defaultValue = "yolo26n-seg") String modelType,
+            RedirectAttributes redirectAttributes) {
+        if (image == null || image.isEmpty()) {
+            redirectAttributes.addFlashAttribute("flashType", "warning");
+            redirectAttributes.addFlashAttribute("flashMessage", "Vui lòng chọn một ảnh nội soi hợp lệ trước khi phân tích.");
+            return "redirect:/diagnose";
+        }
+
+        if (!ACTIVE_MODEL_CODES.contains(modelType)) {
+            redirectAttributes.addFlashAttribute("flashType", "warning");
+            redirectAttributes.addFlashAttribute(
+                    "flashMessage",
+                    "Giai đoạn 3D chỉ kích hoạt YOLO26n-seg và YOLO26n-VMamba-seg."
+            );
+            return "redirect:/diagnose";
+        }
+
+        String selectedModel = MODEL_OPTIONS.stream()
+                .filter(option -> option.getCode().equals(modelType))
+                .map(ModelOptionView::getName)
+                .findFirst()
+                .orElse(MODEL_OPTIONS.get(0).getName());
+
+        DiagnosisResultView savedResult;
+        String originalImageUrl = null;
+        String resultImageUrl = null;
+        try {
+            UUID storageId = UUID.randomUUID();
+            originalImageUrl = storageService.storeOriginal(image, storageId);
+
+            AiPredictionResponse prediction = aiInferenceClient.predict(image, selectedModel);
+            resultImageUrl = storageService.storeResult(prediction.getResultImageBase64(), storageId);
+
+            DiagnosisResultView apiResult = createResultFromPrediction(
+                    prediction,
+                    image.getOriginalFilename(),
+                    selectedModel,
+                    originalImageUrl,
+                    resultImageUrl
+            );
+            savedResult = historyService.saveResult(apiResult, principal.getUserId());
+        } catch (AiServiceException exception) {
+            cleanupStoredImages(originalImageUrl, resultImageUrl);
+            LOGGER.warn(
+                    "Inference unavailable userId={} modelType={} type={}",
+                    shortId(principal.getUserId()),
+                    selectedModel,
+                    exception.getClass().getSimpleName()
+            );
+            redirectAttributes.addFlashAttribute("flashType", "warning");
+            redirectAttributes.addFlashAttribute("flashMessage", exception.getMessage());
+            return "redirect:/diagnose";
+        } catch (StorageException exception) {
+            cleanupStoredImages(originalImageUrl, resultImageUrl);
+            LOGGER.warn(
+                    "Storage rejected diagnosis userId={} modelType={} type={}",
+                    shortId(principal.getUserId()),
+                    selectedModel,
+                    exception.getClass().getSimpleName()
+            );
+            redirectAttributes.addFlashAttribute("flashType", "warning");
+            redirectAttributes.addFlashAttribute("flashMessage", exception.getMessage());
+            return "redirect:/diagnose";
+        } catch (RuntimeException exception) {
+            cleanupStoredImages(originalImageUrl, resultImageUrl);
+            LOGGER.error("Không thể hoàn tất lưu kết quả inference", exception);
+            redirectAttributes.addFlashAttribute("flashType", "warning");
+            redirectAttributes.addFlashAttribute(
+                    "flashMessage",
+                    "Không thể lưu kết quả phân tích. Các file tạm đã được dọn dẹp."
+            );
+            return "redirect:/diagnose";
+        }
+
+        redirectAttributes.addFlashAttribute("flashType", "info");
+        redirectAttributes.addFlashAttribute(
+                "flashMessage",
+                selectedModel + " đã hoàn tất inference; ảnh và metadata đã được lưu lâu dài."
+        );
+        return "redirect:/diagnoses/" + savedResult.getId();
+    }
+
+    @GetMapping("/diagnoses/{id}")
+    public String resultById(
+            @AuthenticationPrincipal CurrentUserPrincipal principal,
+            @PathVariable String id,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+        return historyService.findByIdAccessible(id, principal.getUserId(), principal.isAdmin())
+                .map(result -> {
+                    addResultPageData(model, result);
+                    return "diagnosis-result";
+                })
+                .orElseGet(() -> {
+                    redirectAttributes.addFlashAttribute("flashType", "warning");
+                    redirectAttributes.addFlashAttribute("flashMessage", "Không tìm thấy bản ghi lịch sử đã yêu cầu.");
+                    return "redirect:/history";
+                });
+    }
+
+    @GetMapping("/diagnoses/demo")
+    public String demoResult(Model model) {
+        DiagnosisResultView result = createMockResult(
+                "PV-DEMO-001",
+                "noi-soi-dai-trang-demo.jpg",
+                "YOLO26m-VMamba-seg",
+                true,
+                93.4,
+                118.6,
+                LocalDateTime.now().minusMinutes(8)
+        );
+        addResultPageData(model, result);
+        return "diagnosis-result";
+    }
+
+    private void addDiagnosePageData(Model model) {
+        model.addAttribute("pageTitle", "Phân tích ảnh");
+        model.addAttribute("activePage", "diagnose");
+        model.addAttribute("modelOptions", MODEL_OPTIONS);
+    }
+
+    private void addResultPageData(Model model, DiagnosisResultView result) {
+        model.addAttribute("pageTitle", "Kết quả phân tích");
+        model.addAttribute("activePage", "diagnose");
+        model.addAttribute("result", result);
+        model.addAttribute(
+                "vmambaModel",
+                result.getModelType() != null
+                        && result.getModelType().toLowerCase().contains("vmamba")
+        );
+    }
+
+    private DiagnosisResultView createMockResult(
+            String id,
+            String fileName,
+            String modelType,
+            boolean detected,
+            double confidence,
+            double processingTime,
+            LocalDateTime createdAt) {
+        return new DiagnosisResultView(
+                id,
+                "",
+                "",
+                fileName,
+                modelType,
+                detected,
+                detected ? "polyp" : "Không có",
+                confidence,
+                processingTime,
+                "1280 × 720 px",
+                createdAt,
+                true
+        );
+    }
+
+    private DiagnosisResultView createResultFromPrediction(
+            AiPredictionResponse prediction,
+            String uploadedFileName,
+            String selectedModel,
+            String originalImageUrl,
+            String resultImageUrl) {
+        String fileName = prediction.getOriginalFileName();
+        if (fileName == null || fileName.isBlank()) {
+            fileName = uploadedFileName == null ? "anh-noi-soi.jpg" : uploadedFileName;
+        }
+
+        String responseModel = prediction.getModelType();
+        if (responseModel == null || responseModel.isBlank()) {
+            responseModel = selectedModel;
+        }
+
+        double confidencePercent = prediction.getConfidence() <= 1
+                ? prediction.getConfidence() * 100
+                : prediction.getConfidence();
+        confidencePercent = Math.max(0, Math.min(100, confidencePercent));
+
+        return new DiagnosisResultView(
+                null,
+                originalImageUrl,
+                resultImageUrl,
+                fileName,
+                responseModel,
+                prediction.isDetected(),
+                prediction.getLabel(),
+                confidencePercent,
+                prediction.getProcessingTimeMs(),
+                prediction.getMaskCount(),
+                "1280 × 720 px",
+                LocalDateTime.now(),
+                false,
+                null,
+                false
+        );
+    }
+
+    private void cleanupStoredImages(String originalImageUrl, String resultImageUrl) {
+        storageService.deleteQuietly(originalImageUrl);
+        storageService.deleteQuietly(resultImageUrl);
+    }
+
+    private static ModelOptionView baseline(String code, String name, String description) {
+        return new ModelOptionView(
+                code,
+                name,
+                description,
+                false,
+                ACTIVE_MODEL_CODES.contains(code)
+        );
+    }
+
+    private static ModelOptionView vmamba(String code, String name, String description) {
+        return new ModelOptionView(
+                code,
+                name,
+                description,
+                true,
+                ACTIVE_MODEL_CODES.contains(code)
+        );
+    }
+
+    private String shortId(String value) {
+        if (value == null || value.isBlank()) {
+            return "unknown";
+        }
+        return value.length() <= 8 ? value : value.substring(0, 8);
+    }
+}

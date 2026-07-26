@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero compact-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">So sánh mô hình</li>
+                </ol>
+            </nav>
+            <div class="row align-items-end g-3">
+                <div class="col-lg-8">
+                    <span class="eyebrow">Paired model inference</span>
+                    <h1>So sánh YOLO26n-seg và YOLO26n-VMamba-seg</h1>
+                    <p>Một ảnh sẽ được xử lý tuần tự bởi hai checkpoint để hiển thị kết quả cạnh nhau.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a class="btn btn-outline-primary" th:href="@{/comparisons}">
+                        <i class="bi bi-clock-history"></i> Lịch sử so sánh
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container compare-content">
+        <div class="neutral-note compare-caution" role="note">
+            <i class="bi bi-info-circle"></i>
+            <span>Confidence cao hơn trên một ảnh không đồng nghĩa mô hình tốt hơn tổng thể.</span>
+        </div>
+
+        <form id="compareForm" th:action="@{/compare}" method="post" enctype="multipart/form-data" novalidate>
+            <div class="compare-layout">
+                <div class="workspace-card">
+                    <div class="card-heading">
+                        <div>
+                            <span class="card-step">Bước 1</span>
+                            <h2>Chọn một ảnh nội soi</h2>
+                        </div>
+                        <span class="file-requirement">JPG, JPEG, PNG · Tối đa 10 MB</span>
+                    </div>
+                    <input class="visually-hidden" type="file" id="compareImageInput" name="image"
+                           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                           aria-label="Ảnh dùng để so sánh mô hình"
+                           aria-describedby="compareFileHelp compareFileError">
+                    <div id="compareUploadZone" class="upload-zone compare-upload-zone" role="group"
+                         aria-label="Kéo thả ảnh hoặc nhấn để chọn tệp">
+                        <div id="compareUploadPrompt" class="upload-prompt">
+                            <div class="upload-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                            <h3>Kéo thả ảnh vào đây</h3>
+                            <p>hoặc chọn một ảnh từ thiết bị</p>
+                            <button class="btn btn-outline-primary" type="button" id="compareChooseFileButton">
+                                <i class="bi bi-folder2-open"></i> Chọn ảnh
+                            </button>
+                            <small id="compareFileHelp">Ảnh hợp lệ sẽ được dùng chung cho cả hai mô hình.</small>
+                        </div>
+                        <div id="comparePreviewContainer" class="preview-container" hidden>
+                            <img id="compareImagePreview" src="" alt="Ảnh nội soi được chọn để so sánh">
+                            <div class="preview-overlay">
+                                <span id="comparePreviewFileName">image.jpg</span>
+                                <span id="comparePreviewFileSize">0 MB</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="compareFileError" class="validation-message" role="alert"
+                         aria-live="assertive" aria-atomic="true" hidden>
+                        <i class="bi bi-exclamation-circle"></i>
+                        <span>Vui lòng chọn ảnh hợp lệ.</span>
+                    </div>
+                    <div class="selected-file-actions" id="compareSelectedFileActions" hidden>
+                        <div>
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span>Ảnh đã sẵn sàng cho hai lượt inference</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-light-danger" id="compareRemoveImageButton">
+                            <i class="bi bi-trash3"></i> Xóa ảnh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="workspace-card">
+                    <div class="card-heading">
+                        <div>
+                            <span class="card-step">Bước 2</span>
+                            <h2>Hai mô hình cố định</h2>
+                        </div>
+                    </div>
+                    <div class="fixed-model-grid">
+                        <article class="fixed-model-card baseline">
+                            <div>
+                                <span class="model-family-badge baseline">Baseline</span>
+                                <span class="model-ready"><span class="status-dot"></span> Sẵn sàng</span>
+                            </div>
+                            <h3>YOLO26n-seg</h3>
+                            <p>Checkpoint nano tham chiếu cho phiên so sánh.</p>
+                        </article>
+                        <article class="fixed-model-card vmamba">
+                            <div>
+                                <span class="model-family-badge vmamba">VMamba</span>
+                                <span class="model-ready"><span class="status-dot"></span> Sẵn sàng</span>
+                            </div>
+                            <h3>YOLO26n-VMamba-seg</h3>
+                            <p>Checkpoint nano tích hợp VMambaBlock.</p>
+                        </article>
+                    </div>
+                    <div class="comparison-sequence">
+                        <i class="bi bi-arrow-down-up"></i>
+                        <p>Hệ thống kiểm tra cả hai checkpoint, sau đó chạy lần lượt
+                            <strong>Baseline → VMamba</strong>. Không có fallback sang một mô hình.</p>
+                    </div>
+                    <button class="btn btn-primary btn-lg w-100 compare-submit" type="submit" id="compareSubmitButton">
+                        <span class="button-default"><i class="bi bi-columns-gap"></i> Bắt đầu so sánh</span>
+                        <span class="button-loading" hidden>
+                            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                            Đang lần lượt chạy hai mô hình...
+                        </span>
+                    </button>
+                    <p class="submit-status visually-hidden" id="compareSubmitStatus"
+                       role="status" aria-live="polite" aria-atomic="true"></p>
+                </div>
+            </div>
+        </form>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+<script th:src="@{/js/compare.js}"></script>
+</body>
+</html>

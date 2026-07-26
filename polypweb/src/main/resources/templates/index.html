@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" tabindex="-1">
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6">
+                    <span class="eyebrow"><i class="bi bi-stars"></i> Nghiên cứu thị giác máy tính trong nội soi</span>
+                    <h1>Phân đoạn polyp từ ảnh nội soi bằng <span class="text-gradient">trí tuệ nhân tạo</span></h1>
+                    <p class="hero-lead">
+                        Giao diện minh họa quy trình nghiên cứu YOLO26-seg kết hợp VMambaBlock nhằm biểu diễn
+                        và trực quan hóa vùng nghi ngờ polyp trên ảnh nội soi đại trực tràng.
+                    </p>
+                    <div class="hero-actions">
+                        <a class="btn btn-primary btn-lg" th:href="@{/diagnose}">
+                            <i class="bi bi-image"></i> Phân tích ảnh
+                        </a>
+                        <a class="btn btn-outline-primary btn-lg" th:href="@{/about}">
+                            Tìm hiểu hệ thống
+                        </a>
+                        <a class="btn btn-outline-primary btn-lg" th:href="@{/compare}">
+                            <i class="bi bi-columns-gap"></i> So sánh Baseline và VMamba
+                        </a>
+                    </div>
+                    <div class="hero-note">
+                        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                        Không yêu cầu đăng nhập để trải nghiệm giao diện minh họa
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="ai-visual-card" role="img"
+                         aria-label="Minh họa quy trình từ ảnh nội soi đầu vào, qua mô hình AI đến mask phân đoạn">
+                        <div class="visual-topbar">
+                            <div>
+                                <span class="status-dot"></span>
+                                <span>PolypVision workspace</span>
+                            </div>
+                            <span class="visual-mode">DEMO</span>
+                        </div>
+                        <div class="visual-canvas">
+                            <div class="endoscopy-frame">
+                                <span class="frame-label">Ảnh đầu vào</span>
+                                <div class="endoscopy-core"></div>
+                                <div class="scan-line"></div>
+                            </div>
+                            <div class="visual-flow" aria-hidden="true">
+                                <i class="bi bi-arrow-right"></i>
+                                <span>AI</span>
+                            </div>
+                            <div class="endoscopy-frame result-frame">
+                                <span class="frame-label">Mask phân đoạn</span>
+                                <div class="endoscopy-core"></div>
+                                <div class="mock-mask"></div>
+                                <span class="confidence-chip">93,4%</span>
+                            </div>
+                        </div>
+                        <div class="visual-footer">
+                            <div><span>Model</span><strong>YOLO26 + VMamba</strong></div>
+                            <div><span>Output</span><strong>Segmentation mask</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="research-stats row g-3">
+                <div class="col-md-4" th:each="metric : ${researchMetrics}">
+                    <div class="stat-item">
+                        <strong th:text="${metric.label}">10</strong>
+                        <div>
+                            <span th:text="${metric.value}">cấu hình</span>
+                            <small th:text="${metric.description}">Mô tả</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-space" id="workflow">
+        <div class="container">
+            <div class="section-heading text-center">
+                <span class="eyebrow">Quy trình hoạt động</span>
+                <h2>Ba bước từ ảnh đến vùng phân đoạn</h2>
+                <p>Luồng thao tác ngắn gọn giúp tập trung vào việc quan sát và so sánh kết quả nghiên cứu.</p>
+            </div>
+            <div class="workflow-grid">
+                <article class="workflow-card">
+                    <span class="step-number">01</span>
+                    <div class="feature-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                    <h3>Tải ảnh nội soi</h3>
+                    <p>Chọn hoặc kéo thả ảnh JPG, JPEG, PNG từ thiết bị vào vùng tải lên.</p>
+                </article>
+                <article class="workflow-card">
+                    <span class="step-number">02</span>
+                    <div class="feature-icon"><i class="bi bi-cpu"></i></div>
+                    <h3>Mô hình AI phân tích</h3>
+                    <p>Chọn cấu hình YOLO26-seg baseline hoặc biến thể tích hợp VMambaBlock.</p>
+                </article>
+                <article class="workflow-card">
+                    <span class="step-number">03</span>
+                    <div class="feature-icon"><i class="bi bi-bounding-box"></i></div>
+                    <h3>Xem vùng phân đoạn</h3>
+                    <p>So sánh ảnh gốc, kết quả mask và các thông tin xử lý ở cùng một nơi.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-space feature-section">
+        <div class="container">
+            <div class="row align-items-end g-3 section-heading-row">
+                <div class="col-lg-7">
+                    <span class="eyebrow">Tính năng chính</span>
+                    <h2>Không gian thử nghiệm trực quan, dễ tiếp cận</h2>
+                </div>
+                <div class="col-lg-5">
+                    <p>Thiết kế hướng tới việc trình bày quy trình nghiên cứu một cách rõ ràng trên nhiều kích thước màn hình.</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4">
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-upload"></i></div>
+                        <h3>Tải ảnh nhanh</h3>
+                        <p>Kéo thả, xem trước và kiểm tra định dạng ảnh ngay trên trình duyệt.</p>
+                    </article>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-bounding-box-circles"></i></div>
+                        <h3>Phân đoạn vùng polyp</h3>
+                        <p>Minh họa mask vùng nghi ngờ mà không đưa ra kết luận y khoa chắc chắn.</p>
+                    </article>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-columns-gap"></i></div>
+                        <h3>So sánh nhiều mô hình</h3>
+                        <p>Chuẩn bị sẵn lựa chọn các kích thước YOLO26-seg và biến thể VMamba.</p>
+                    </article>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-clock-history"></i></div>
+                        <h3>Lưu lịch sử phân tích</h3>
+                        <p>Giao diện lịch sử giúp theo dõi lại các lượt chạy và cấu hình đã chọn.</p>
+                    </article>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-speedometer2"></i></div>
+                        <h3>Hiển thị độ tin cậy</h3>
+                        <p>Trình bày confidence và thời gian xử lý theo cách rõ ràng, dễ đọc.</p>
+                    </article>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-hand-index-thumb"></i></div>
+                        <h3>Giao diện dễ sử dụng</h3>
+                        <p>Luồng thao tác đơn giản, trạng thái rõ ràng và tương thích thiết bị di động.</p>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-space">
+        <div class="container">
+            <div class="section-heading text-center">
+                <span class="eyebrow">Không gian mô hình</span>
+                <h2>Hai hướng cấu hình phục vụ so sánh</h2>
+                <p>Các cấu hình được trình bày trung lập; đánh giá hiệu quả cần dựa trên kết quả thực nghiệm.</p>
+            </div>
+            <div class="model-comparison">
+                <article class="model-card">
+                    <span class="model-kicker">Baseline</span>
+                    <div class="model-icon"><i class="bi bi-diagram-3"></i></div>
+                    <h3>YOLO26-seg</h3>
+                    <p>Mô hình baseline dùng làm mốc tham chiếu trong các thí nghiệm phân đoạn polyp.</p>
+                    <ul class="check-list">
+                        <li><i class="bi bi-check2"></i> Một giai đoạn, hướng tới suy luận hiệu quả</li>
+                        <li><i class="bi bi-check2"></i> Nhiều kích thước n, s, m, l và x</li>
+                        <li><i class="bi bi-check2"></i> Cung cấp mask phân đoạn theo ảnh</li>
+                    </ul>
+                </article>
+                <article class="model-card model-card-highlight">
+                    <span class="model-kicker">Hướng nghiên cứu</span>
+                    <div class="model-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+                    <h3>YOLO26-seg + VMambaBlock</h3>
+                    <p>Phiên bản tích hợp VMambaBlock được nghiên cứu nhằm bổ sung cơ chế khai thác phụ thuộc
+                        không gian dài hạn trên feature map mức cao.</p>
+                    <ul class="check-list">
+                        <li><i class="bi bi-check2"></i> Khối VSS/SS2D-inspired</li>
+                        <li><i class="bi bi-check2"></i> Giữ cùng nhóm kích thước để đối chiếu</li>
+                        <li><i class="bi bi-check2"></i> Chưa khẳng định vượt trội trước thực nghiệm</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="container research-callout-wrap">
+        <div class="research-callout">
+            <div class="callout-icon"><i class="bi bi-info-circle"></i></div>
+            <div>
+                <h2>Lưu ý về phạm vi sử dụng</h2>
+                <p>Hệ thống được xây dựng phục vụ nghiên cứu học thuật. Kết quả không được sử dụng thay thế
+                    chẩn đoán hoặc tư vấn chuyên môn y tế.</p>
+            </div>
+            <a class="btn btn-light" th:href="@{/about}">Xem giới hạn hệ thống</a>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero compact-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Lịch sử so sánh</li>
+                </ol>
+            </nav>
+            <div class="row align-items-end g-3">
+                <div class="col-lg-8">
+                    <span class="eyebrow">Paired research records</span>
+                    <h1>Lịch sử so sánh mô hình</h1>
+                    <p>Mỗi mục là một group hoàn chỉnh gồm đúng Baseline và VMamba trên cùng ảnh.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a class="btn btn-primary" th:href="@{/compare}">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> So sánh mới
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container history-content">
+        <nav class="history-mode-tabs" aria-label="Loại lịch sử">
+            <a th:href="@{/history}"><i class="bi bi-image" aria-hidden="true"></i> Phân tích đơn</a>
+            <a class="active" th:href="@{/comparisons}" aria-current="page">
+                <i class="bi bi-columns-gap" aria-hidden="true"></i> So sánh mô hình
+            </a>
+        </nav>
+
+        <div class="filter-validation-alert" role="alert" id="comparisonFilterErrors"
+             th:if="${!#lists.isEmpty(validationMessages)}">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+            <div>
+                <strong>Một số bộ lọc đã được điều chỉnh</strong>
+                <ul><li th:each="message : ${validationMessages}" th:text="${message}">Thông báo</li></ul>
+            </div>
+        </div>
+
+        <form class="history-filter-panel" method="get" th:action="@{/comparisons}"
+              th:attr="aria-describedby=${#lists.isEmpty(validationMessages)
+                ? null : 'comparisonFilterErrors'}">
+            <div class="history-filter-grid comparison-filter-grid">
+                <div class="filter-field filter-keyword">
+                    <label for="comparisonKeyword">Tìm tên file</label>
+                    <input class="form-control" id="comparisonKeyword" name="keyword" type="search"
+                           maxlength="100" placeholder="Ví dụ: kvasir"
+                           th:value="${filter.keyword}">
+                </div>
+                <div class="filter-field">
+                    <label for="baselineDetected">Baseline</label>
+                    <select class="form-select" id="baselineDetected" name="baselineDetected">
+                        <option value="ALL" th:selected="${filter.baselineDetected == 'ALL'}">Tất cả trạng thái</option>
+                        <option value="true" th:selected="${filter.baselineDetected == 'true'}">Có phát hiện</option>
+                        <option value="false" th:selected="${filter.baselineDetected == 'false'}">Không phát hiện</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="vmambaDetected">VMamba</label>
+                    <select class="form-select" id="vmambaDetected" name="vmambaDetected">
+                        <option value="ALL" th:selected="${filter.vmambaDetected == 'ALL'}">Tất cả trạng thái</option>
+                        <option value="true" th:selected="${filter.vmambaDetected == 'true'}">Có phát hiện</option>
+                        <option value="false" th:selected="${filter.vmambaDetected == 'false'}">Không phát hiện</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="comparisonDateFrom">Từ ngày</label>
+                    <input class="form-control" id="comparisonDateFrom" name="dateFrom" type="date"
+                           th:value="${filter.dateFrom}">
+                </div>
+                <div class="filter-field">
+                    <label for="comparisonDateTo">Đến ngày</label>
+                    <input class="form-control" id="comparisonDateTo" name="dateTo" type="date"
+                           th:value="${filter.dateTo}">
+                </div>
+                <div class="filter-field">
+                    <label for="comparisonSort">Sắp xếp</label>
+                    <select class="form-select" id="comparisonSort" name="sort">
+                        <option value="newest" th:selected="${filter.sort == 'newest'}">Mới nhất</option>
+                        <option value="oldest" th:selected="${filter.sort == 'oldest'}">Cũ nhất</option>
+                        <option value="baseline-confidence-desc"
+                                th:selected="${filter.sort == 'baseline-confidence-desc'}">Baseline confidence giảm dần</option>
+                        <option value="vmamba-confidence-desc"
+                                th:selected="${filter.sort == 'vmamba-confidence-desc'}">VMamba confidence giảm dần</option>
+                        <option value="total-processing-desc"
+                                th:selected="${filter.sort == 'total-processing-desc'}">Tổng xử lý giảm dần</option>
+                        <option value="total-processing-asc"
+                                th:selected="${filter.sort == 'total-processing-asc'}">Tổng xử lý tăng dần</option>
+                    </select>
+                </div>
+                <div class="filter-field filter-size">
+                    <label for="comparisonSize">Số phiên</label>
+                    <select class="form-select" id="comparisonSize" name="size">
+                        <option value="10" th:selected="${filter.pageSize == 10}">10</option>
+                        <option value="20" th:selected="${filter.pageSize == 20}">20</option>
+                        <option value="50" th:selected="${filter.pageSize == 50}">50</option>
+                    </select>
+                </div>
+            </div>
+            <div class="history-filter-actions">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-funnel" aria-hidden="true"></i> Áp dụng
+                </button>
+                <a class="btn btn-outline-secondary" th:href="@{/comparisons}">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Đặt lại
+                </a>
+            </div>
+        </form>
+
+        <div class="history-summary" aria-live="polite">
+            <div><span>Tổng phiên hoàn chỉnh</span><strong th:text="${pagination.totalItems}">0</strong></div>
+            <span class="history-range"
+                  th:text="${pagination.totalItems == 0
+                    ? 'Không có phiên phù hợp'
+                    : 'Hiển thị ' + pagination.firstItem + '–' + pagination.lastItem
+                      + ' trong tổng số ' + pagination.totalItems + ' phiên.'}">
+                Không có phiên phù hợp
+            </span>
+        </div>
+
+        <div class="comparison-history-grid" th:if="${pagination.totalItems > 0}">
+            <article class="comparison-history-card" th:each="item : ${comparisons}">
+                <div class="comparison-history-image">
+                    <img th:src="${item.originalImageUrl}" alt="">
+                </div>
+                <div class="comparison-history-body">
+                    <div class="comparison-history-heading">
+                        <div>
+                            <span th:text="${'Phiên ' + item.shortGroupId}">Phiên a1b2c3d4</span>
+                            <h2 th:text="${item.originalFileName}">case.jpg</h2>
+                        </div>
+                        <time th:datetime="${item.createdAt}"
+                              th:text="${#temporals.format(item.createdAt, 'HH:mm · dd/MM/yyyy')}">09:30 · 22/07/2026</time>
+                    </div>
+                    <div class="comparison-history-results">
+                        <div>
+                            <span class="model-family-badge baseline">Baseline</span>
+                            <strong th:text="${item.baselineResult.detected ? 'Có phát hiện' : 'Không phát hiện'}">Có</strong>
+                            <small th:text="${#numbers.formatDecimal(item.baselineResult.confidence, 1, 1) + '% confidence'}">0%</small>
+                        </div>
+                        <div>
+                            <span class="model-family-badge vmamba">VMamba</span>
+                            <strong th:text="${item.vmambaResult.detected ? 'Có phát hiện' : 'Không phát hiện'}">Có</strong>
+                            <small th:text="${#numbers.formatDecimal(item.vmambaResult.confidence, 1, 1) + '% confidence'}">0%</small>
+                        </div>
+                    </div>
+                    <p class="comparison-processing-note"
+                       th:text="${'Tổng thời gian AI hai lượt: '
+                         + #numbers.formatDecimal(item.totalProcessingTimeMs, 1, 1) + ' ms'}">
+                        Tổng thời gian AI hai lượt: 0,0 ms
+                    </p>
+                    <div class="comparison-history-actions">
+                        <a class="btn btn-sm btn-light-primary"
+                           th:href="@{/comparisons/{id}(id=${item.comparisonGroupId})}">
+                            <i class="bi bi-eye" aria-hidden="true"></i> Xem chi tiết
+                        </a>
+                        <a class="btn btn-sm btn-outline-secondary"
+                           th:href="@{/comparisons/{id}/metadata.json(id=${item.comparisonGroupId})}">
+                            <i class="bi bi-filetype-json" aria-hidden="true"></i> Metadata
+                        </a>
+                        <form th:action="@{/comparisons/{id}/delete(id=${item.comparisonGroupId})}"
+                              method="post" data-delete-comparison-form>
+                            <button class="btn btn-sm btn-light-danger" type="submit">
+                                <i class="bi bi-trash3" aria-hidden="true"></i> Xóa
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <div class="history-pagination comparison-pagination" th:if="${pagination.totalItems > 0}">
+            <span th:text="${'Trang ' + pagination.displayPage + '/' + pagination.totalPages}">Trang 1/1</span>
+            <nav aria-label="Phân trang lịch sử so sánh">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${pagination.first ? ' disabled' : ''}">
+                        <span class="page-link" th:if="${pagination.first}">Đầu</span>
+                        <a class="page-link" th:unless="${pagination.first}"
+                           th:href="@{/comparisons(page=0,size=${filter.pageSize},keyword=${filter.keyword},baselineDetected=${filter.baselineDetected},vmambaDetected=${filter.vmambaDetected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">Đầu</a>
+                    </li>
+                    <li class="page-item" th:classappend="${pagination.first ? ' disabled' : ''}">
+                        <span class="page-link" th:if="${pagination.first}">Trước</span>
+                        <a class="page-link" th:unless="${pagination.first}"
+                           th:href="@{/comparisons(page=${pagination.previousPage},size=${filter.pageSize},keyword=${filter.keyword},baselineDetected=${filter.baselineDetected},vmambaDetected=${filter.vmambaDetected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">Trước</a>
+                    </li>
+                    <li class="page-item" th:each="pageNumber : ${pagination.pageNumbers}"
+                        th:classappend="${pageNumber == pagination.currentPage ? ' active' : ''}">
+                        <span class="page-link" aria-current="page"
+                              th:if="${pageNumber == pagination.currentPage}"
+                              th:text="${pageNumber + 1}">1</span>
+                        <a class="page-link" th:unless="${pageNumber == pagination.currentPage}"
+                           th:text="${pageNumber + 1}"
+                           th:href="@{/comparisons(page=${pageNumber},size=${filter.pageSize},keyword=${filter.keyword},baselineDetected=${filter.baselineDetected},vmambaDetected=${filter.vmambaDetected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">2</a>
+                    </li>
+                    <li class="page-item" th:classappend="${pagination.last ? ' disabled' : ''}">
+                        <span class="page-link" th:if="${pagination.last}">Sau</span>
+                        <a class="page-link" th:unless="${pagination.last}"
+                           th:href="@{/comparisons(page=${pagination.nextPage},size=${filter.pageSize},keyword=${filter.keyword},baselineDetected=${filter.baselineDetected},vmambaDetected=${filter.vmambaDetected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">Sau</a>
+                    </li>
+                    <li class="page-item" th:classappend="${pagination.last ? ' disabled' : ''}">
+                        <span class="page-link" th:if="${pagination.last}">Cuối</span>
+                        <a class="page-link" th:unless="${pagination.last}"
+                           th:href="@{/comparisons(page=${pagination.lastPage},size=${filter.pageSize},keyword=${filter.keyword},baselineDetected=${filter.baselineDetected},vmambaDetected=${filter.vmambaDetected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">Cuối</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <div class="history-empty" th:if="${pagination.totalItems == 0}">
+            <div class="empty-icon"><i class="bi bi-columns-gap" aria-hidden="true"></i></div>
+            <h2>Không có phiên so sánh phù hợp</h2>
+            <p>Thay đổi bộ lọc hoặc chạy một phiên Baseline–VMamba mới.</p>
+            <a class="btn btn-outline-primary" th:href="@{/comparisons}">Đặt lại bộ lọc</a>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero compact-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Phân tích ảnh</li>
+                </ol>
+            </nav>
+            <div class="row align-items-end g-3">
+                <div class="col-lg-8">
+                    <span class="eyebrow">AI segmentation workspace</span>
+                    <h1>Phân tích ảnh nội soi</h1>
+                    <p>Tải ảnh, chọn baseline hoặc VMamba và xem mask phân đoạn thật trong một quy trình.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <span class="demo-status"><span class="status-dot"></span> Hai checkpoint thật đang hoạt động</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container diagnose-section">
+        <form id="diagnoseForm" th:action="@{/diagnose}" method="post" enctype="multipart/form-data" novalidate>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="workspace-card h-100">
+                        <div class="card-heading">
+                            <div>
+                                <span class="card-step">Bước 1</span>
+                                <h2>Chọn ảnh nội soi</h2>
+                            </div>
+                            <span class="file-requirement">JPG, JPEG, PNG · Tối đa 10 MB</span>
+                        </div>
+                        <input class="visually-hidden" type="file" id="imageInput" name="image"
+                               accept=".jpg,.jpeg,.png,image/jpeg,image/png" aria-label="Tệp ảnh nội soi"
+                               aria-describedby="fileHelp fileError">
+                        <div id="uploadZone" class="upload-zone" role="group"
+                             aria-label="Kéo thả ảnh hoặc nhấn để chọn tệp">
+                            <div id="uploadPrompt" class="upload-prompt">
+                                <div class="upload-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                                <h3>Kéo thả ảnh vào đây</h3>
+                                <p>hoặc chọn tệp từ thiết bị của bạn</p>
+                                <button class="btn btn-outline-primary" type="button" id="chooseFileButton">
+                                    <i class="bi bi-folder2-open"></i> Chọn ảnh
+                                </button>
+                                <small id="fileHelp">Chỉ dùng tệp ảnh JPG, JPEG hoặc PNG không vượt quá 10 MB.</small>
+                            </div>
+                            <div id="previewContainer" class="preview-container" hidden>
+                                <img id="imagePreview" src="" alt="Ảnh nội soi đã chọn để phân tích">
+                                <div class="preview-overlay">
+                                    <span id="previewFileName">image.jpg</span>
+                                    <span id="previewFileSize">0 MB</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="fileError" class="validation-message" role="alert"
+                             aria-live="assertive" aria-atomic="true" hidden>
+                            <i class="bi bi-exclamation-circle"></i>
+                            <span>Vui lòng chọn ảnh hợp lệ.</span>
+                        </div>
+                        <div class="selected-file-actions" id="selectedFileActions" hidden>
+                            <div>
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <span>Ảnh đã sẵn sàng để phân tích</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-light-danger" id="removeImageButton">
+                                <i class="bi bi-trash3"></i> Xóa ảnh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="workspace-card h-100">
+                        <div class="card-heading">
+                            <div>
+                                <span class="card-step">Bước 2</span>
+                                <h2>Chọn mô hình</h2>
+                            </div>
+                        </div>
+                        <label class="form-label" for="modelType">Cấu hình phân đoạn</label>
+                        <select class="form-select form-select-lg" id="modelType" name="modelType">
+                            <option th:each="option : ${modelOptions}"
+                                    th:value="${option.code}"
+                                    th:disabled="${!option.enabled}"
+                                    th:text="${option.name + (option.enabled ? '' : ' — chưa kích hoạt')}"
+                                    th:attr="data-description=${option.description},data-vmamba=${option.vmamba}">
+                                YOLO26n-seg
+                            </option>
+                        </select>
+                        <div class="model-description" id="modelDescription">
+                            <div class="model-description-icon"><i class="bi bi-cpu"></i></div>
+                            <div>
+                                <span id="modelCategory">Baseline</span>
+                                <p id="modelDescriptionText">Phiên bản nano, ưu tiên tốc độ và tài nguyên tính toán thấp.</p>
+                            </div>
+                        </div>
+                        <div class="mock-info">
+                            <i class="bi bi-info-circle"></i>
+                            <p>Giai đoạn 3D chạy thật <code>YOLO26n-seg</code> và
+                                <code>YOLO26n-VMamba-seg</code> với cùng ngưỡng confidence và kích thước đầu vào.</p>
+                        </div>
+                        <button class="btn btn-primary btn-lg w-100 analyze-button" type="submit" id="analyzeButton">
+                            <span class="button-default">
+                                <i class="bi bi-stars"></i> Bắt đầu phân tích
+                            </span>
+                            <span class="button-loading" hidden>
+                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                Đang chạy mô hình phân đoạn...
+                            </span>
+                        </button>
+                        <p class="submit-status visually-hidden" id="diagnoseSubmitStatus"
+                           role="status" aria-live="polite" aria-atomic="true"></p>
+                        <p class="privacy-note"><i class="bi bi-shield-check"></i> MongoDB chỉ lưu metadata và đường dẫn; nội dung ảnh nằm trong storage cục bộ.</p>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section class="container tips-section">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="tip-item"><i class="bi bi-brightness-high"></i><span>Chọn ảnh đủ sáng và rõ nét</span></div>
+            </div>
+            <div class="col-md-4">
+                <div class="tip-item"><i class="bi bi-aspect-ratio"></i><span>Giữ nguyên tỷ lệ ảnh nội soi</span></div>
+            </div>
+            <div class="col-md-4">
+                <div class="tip-item"><i class="bi bi-file-earmark-image"></i><span>Dùng đúng định dạng được hỗ trợ</span></div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+<script th:src="@{/js/diagnose.js}"></script>
+</body>
+</html>

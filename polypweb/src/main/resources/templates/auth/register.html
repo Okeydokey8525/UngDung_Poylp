@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body class="auth-body">
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="auth-main" tabindex="-1">
+    <div class="container">
+        <div class="auth-shell register-shell">
+            <section class="auth-intro">
+                <span class="eyebrow eyebrow-light">PolypVision Research</span>
+                <h1>Tạo tài khoản nghiên cứu của bạn</h1>
+                <p>Mỗi tài khoản có lịch sử, ảnh và kết quả riêng được liên kết bằng MongoDB ID.</p>
+                <div class="auth-intro-points">
+                    <div><i class="bi bi-person-check"></i><span>Tài khoản mới luôn có quyền USER</span></div>
+                    <div><i class="bi bi-shield-check"></i><span>Email được chuẩn hóa và kiểm tra trùng</span></div>
+                    <div><i class="bi bi-lock"></i><span>Không lưu mật khẩu thô</span></div>
+                </div>
+            </section>
+
+            <section class="auth-card">
+                <div class="auth-card-heading">
+                    <span>Bắt đầu với PolypVision</span>
+                    <h2>Đăng ký</h2>
+                    <p>Nhập thông tin cơ bản để tạo tài khoản.</p>
+                </div>
+
+                <form th:action="@{/register}" th:object="${registerForm}" method="post"
+                      class="auth-form" data-auth-form data-register-form novalidate>
+                    <div class="alert alert-danger" role="alert" th:if="${#fields.hasGlobalErrors()}">
+                        <div th:each="error : ${#fields.globalErrors()}" th:text="${error}">Dữ liệu chưa hợp lệ.</div>
+                    </div>
+                    <div>
+                        <label class="form-label" for="fullName">Họ và tên</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-person" aria-hidden="true"></i>
+                            <input class="form-control" type="text" id="fullName" th:field="*{fullName}"
+                                   placeholder="Nguyễn Văn A" autocomplete="name" minlength="2" maxlength="100"
+                                   th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''" required>
+                        </div>
+                        <div class="invalid-feedback" th:errors="*{fullName}">Vui lòng nhập họ và tên.</div>
+                    </div>
+                    <div>
+                        <label class="form-label" for="email">Email</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-envelope" aria-hidden="true"></i>
+                            <input class="form-control" type="email" id="email" th:field="*{email}"
+                                   placeholder="name@example.com" autocomplete="email" maxlength="254"
+                                   th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''" required>
+                        </div>
+                        <div class="invalid-feedback" th:errors="*{email}">Vui lòng nhập email hợp lệ.</div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="password">Mật khẩu</label>
+                            <div class="input-with-icon password-control">
+                                <i class="bi bi-lock" aria-hidden="true"></i>
+                                <input class="form-control" type="password" id="password" name="password"
+                                       placeholder="Ít nhất 8 ký tự" autocomplete="new-password"
+                                       minlength="8" maxlength="72"
+                                       th:classappend="${#fields.hasErrors('password')} ? 'is-invalid' : ''" required>
+                                <button type="button" class="password-toggle" data-password-toggle="password"
+                                        aria-label="Hiện mật khẩu"><i class="bi bi-eye"></i></button>
+                            </div>
+                            <div class="invalid-feedback" th:errors="*{password}">
+                                Mật khẩu phải có ít nhất một chữ và một số.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="confirmPassword">Xác nhận mật khẩu</label>
+                            <div class="input-with-icon password-control">
+                                <i class="bi bi-lock-fill" aria-hidden="true"></i>
+                                <input class="form-control" type="password" id="confirmPassword"
+                                       name="confirmPassword" placeholder="Nhập lại mật khẩu"
+                                       autocomplete="new-password"
+                                       th:classappend="${#fields.hasErrors('confirmPassword')} ? 'is-invalid' : ''"
+                                       required>
+                                <button type="button" class="password-toggle"
+                                        data-password-toggle="confirmPassword"
+                                        aria-label="Hiện mật khẩu xác nhận"><i class="bi bi-eye"></i></button>
+                            </div>
+                            <div class="invalid-feedback" th:errors="*{confirmPassword}">
+                                Mật khẩu xác nhận chưa khớp.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="acceptedTerms"
+                               th:field="*{acceptedTerms}"
+                               th:classappend="${#fields.hasErrors('acceptedTerms')} ? 'is-invalid' : ''" required>
+                        <label class="form-check-label" for="acceptedTerms">
+                            Tôi đồng ý với <a th:href="@{/terms}">Điều khoản sử dụng</a> và
+                            <a th:href="@{/privacy}">Chính sách quyền riêng tư</a>; hệ thống chỉ phục vụ nghiên cứu.
+                        </label>
+                        <div class="invalid-feedback" th:errors="*{acceptedTerms}">
+                            Bạn cần đồng ý với điều khoản để tiếp tục.
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-lg w-100" type="submit">
+                        <span class="button-default">Tạo tài khoản</span>
+                        <span class="button-loading" hidden>
+                            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                            Đang tạo tài khoản...
+                        </span>
+                    </button>
+                    <p class="visually-hidden" data-submit-status role="status"
+                       aria-live="polite" aria-atomic="true"></p>
+                </form>
+                <p class="auth-switch">Đã có tài khoản? <a th:href="@{/login}">Đăng nhập</a></p>
+                <a class="back-home" th:href="@{/}"><i class="bi bi-arrow-left"></i> Quay về trang chủ</a>
+            </section>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

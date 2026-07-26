@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main dashboard-main" tabindex="-1">
+    <section class="page-hero dashboard-hero admin-dashboard-hero">
+        <div class="container dashboard-hero-layout">
+            <div>
+                <span class="eyebrow"><i class="bi bi-shield-lock" aria-hidden="true"></i> ADMIN</span>
+                <h1>Dashboard quản trị</h1>
+                <p>Tổng hợp tình trạng tài khoản, hoạt động inference đã lưu và khả năng phục vụ của FastAPI.</p>
+            </div>
+            <div class="dashboard-quick-actions">
+                <a class="btn btn-primary" th:href="@{/admin/users}">
+                    <i class="bi bi-people" aria-hidden="true"></i> Quản lý người dùng
+                </a>
+                <a class="btn btn-outline-primary" th:href="@{/}">Trang chủ</a>
+            </div>
+        </div>
+    </section>
+
+    <div class="container dashboard-content">
+        <aside class="dashboard-disclaimer" aria-label="Lưu ý về ý nghĩa thống kê">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            <p>Các thống kê này phản ánh hoạt động sử dụng hệ thống và kết quả dự đoán đã lưu, không thay thế đánh giá thực nghiệm khoa học của mô hình.</p>
+        </aside>
+
+        <section aria-labelledby="accountMetricsTitle">
+            <div class="dashboard-section-heading">
+                <div>
+                    <span>Tài khoản</span>
+                    <h2 id="accountMetricsTitle">Tình trạng người dùng</h2>
+                </div>
+                <a th:href="@{/admin/users}">Mở quản lý user <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            </div>
+            <div class="dashboard-kpi-grid admin-account-kpis">
+                <article class="dashboard-kpi-card"><span>Tổng tài khoản</span><strong th:text="${#numbers.formatInteger(dashboard.totalUsers, 1, 'POINT')}">0</strong><small>Collection users</small></article>
+                <article class="dashboard-kpi-card"><span>Đang hoạt động</span><strong th:text="${dashboard.enabledUsers}">0</strong><small>enabled=true</small></article>
+                <article class="dashboard-kpi-card"><span>Đã khóa</span><strong th:text="${dashboard.disabledUsers}">0</strong><small>Không xóa lịch sử khi khóa</small></article>
+                <article class="dashboard-kpi-card"><span>Quyền USER</span><strong th:text="${dashboard.userRoleCount}">0</strong><small>Tài khoản người dùng</small></article>
+                <article class="dashboard-kpi-card"><span>Quyền ADMIN</span><strong th:text="${dashboard.adminRoleCount}">0</strong><small>Tài khoản quản trị</small></article>
+            </div>
+        </section>
+
+        <section aria-labelledby="systemMetricsTitle">
+            <div class="dashboard-section-heading">
+                <div>
+                    <span>Inference</span>
+                    <h2 id="systemMetricsTitle">Hoạt động toàn hệ thống</h2>
+                </div>
+                <span class="dashboard-period"><i class="bi bi-clock" aria-hidden="true"></i>
+                    <strong th:text="${dashboard.activityLast24Hours}">0</strong>&nbsp;lượt trong 24 giờ
+                </span>
+            </div>
+            <div class="dashboard-kpi-grid">
+                <article class="dashboard-kpi-card"><span>Tổng history</span><strong th:text="${#numbers.formatInteger(dashboard.totalHistory, 1, 'POINT')}">0</strong><small>Tổng document hợp lệ</small></article>
+                <article class="dashboard-kpi-card"><span>Phân tích đơn</span><strong th:text="${dashboard.singleAnalysis}">0</strong><small>comparisonResult khác true</small></article>
+                <article class="dashboard-kpi-card"><span>Phiên so sánh</span><strong th:text="${dashboard.comparisonSessions}">0</strong><small>Distinct group đủ hai model</small></article>
+                <article class="dashboard-kpi-card"><span>Baseline</span><strong th:text="${dashboard.baselineUsage}">0</strong><small>YOLO26n-seg</small></article>
+                <article class="dashboard-kpi-card"><span>VMamba</span><strong th:text="${dashboard.vmambaUsage}">0</strong><small>YOLO26n-VMamba-seg</small></article>
+                <article class="dashboard-kpi-card"><span>Có phát hiện</span><strong th:text="${dashboard.detected}">0</strong><small>Kết quả detected=true</small></article>
+                <article class="dashboard-kpi-card"><span>Không phát hiện</span><strong th:text="${dashboard.notDetected}">0</strong><small>Kết quả detected=false</small></article>
+                <article class="dashboard-kpi-card"><span>AI trung bình</span><strong th:text="${#numbers.formatDecimal(dashboard.averageProcessingTimeMs, 1, 1)}">0,0</strong><small>Milliseconds mỗi inference</small></article>
+                <article class="dashboard-kpi-card"><span>Tổng vùng mask</span><strong th:text="${#numbers.formatInteger(dashboard.totalMasks, 1, 'POINT')}">0</strong><small>Field thiếu tính là 0</small></article>
+            </div>
+        </section>
+
+        <section aria-labelledby="serviceHealthTitle">
+            <div class="dashboard-section-heading">
+                <div>
+                    <span>Hạ tầng AI</span>
+                    <h2 id="serviceHealthTitle">Trạng thái FastAPI và mô hình</h2>
+                </div>
+                <span class="service-reachability"
+                      th:classappend="${dashboard.aiHealth.reachable ? ' reachable' : ' unavailable'}">
+                    <i class="bi" th:classappend="${dashboard.aiHealth.reachable ? 'bi-wifi' : 'bi-wifi-off'}"
+                       aria-hidden="true"></i>
+                    <span th:text="${'FastAPI: ' + dashboard.aiHealth.serviceStatus}">FastAPI: Không khả dụng</span>
+                </span>
+            </div>
+            <div class="model-health-grid">
+                <article class="model-health-card" th:each="model : ${dashboard.aiHealth.models}"
+                         th:classappend="${model.ready ? ' ready' : ' unavailable'}">
+                    <div class="model-health-icon">
+                        <i class="bi" th:classappend="${model.ready ? 'bi-check2-circle' : 'bi-exclamation-circle'}"
+                           aria-hidden="true"></i>
+                    </div>
+                    <div>
+                        <span th:text="${model.family}">Baseline</span>
+                        <h3 th:text="${model.name}">YOLO26n-seg</h3>
+                        <p>
+                            <strong th:text="${model.status}">Sẵn sàng</strong>
+                            <span th:text="${' · Thiết bị: ' + dashboard.aiHealth.device}"> · Thiết bị: cpu</span>
+                        </p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="dashboard-chart-section" aria-labelledby="adminChartTitle">
+            <div class="dashboard-section-heading">
+                <div>
+                    <span>Xu hướng sử dụng</span>
+                    <h2 id="adminChartTitle">Inference trong 7 ngày</h2>
+                </div>
+            </div>
+            <div class="dashboard-chart-grid">
+                <article class="dashboard-chart-card dashboard-chart-wide" aria-labelledby="adminDailyTitle">
+                    <div class="dashboard-card-heading">
+                        <div><h3 id="adminDailyTitle">Hoạt động theo ngày</h3><p>Số document DiagnosisHistory được tạo.</p></div>
+                        <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
+                    </div>
+                    <div class="daily-chart" role="img" aria-label="Biểu đồ inference toàn hệ thống trong 7 ngày">
+                        <div class="daily-chart-item" th:each="day : ${dashboard.dailyUsage}">
+                            <span class="daily-chart-value" th:text="${day.count}">0</span>
+                            <div class="daily-chart-track"><span class="daily-chart-bar"
+                                 th:style="'--chart-value:' + ${day.percentage} + '%'"></span></div>
+                            <span class="daily-chart-label" th:text="${day.label}">20/07</span>
+                        </div>
+                    </div>
+                    <table class="visually-hidden">
+                        <caption>Inference toàn hệ thống theo ngày</caption>
+                        <tbody><tr th:each="day : ${dashboard.dailyUsage}"><th scope="row" th:text="${day.label}">20/07</th><td th:text="${day.count}">0</td></tr></tbody>
+                    </table>
+                </article>
+                <article class="dashboard-chart-card" aria-labelledby="adminModelTitle">
+                    <div class="dashboard-card-heading"><div><h3 id="adminModelTitle">Mô hình được dùng</h3><p>Phân bố lượt inference.</p></div><i class="bi bi-diagram-3" aria-hidden="true"></i></div>
+                    <div class="distribution-chart" role="img" aria-label="Phân bố model toàn hệ thống">
+                        <div class="distribution-row"><div><span class="chart-key baseline"></span><span>Baseline</span><strong th:text="${dashboard.baselineUsage}">0</strong></div><div class="distribution-track"><span class="distribution-fill baseline" th:style="'--chart-value:' + ${dashboard.baselineRate} + '%'"></span></div></div>
+                        <div class="distribution-row"><div><span class="chart-key vmamba"></span><span>VMamba</span><strong th:text="${dashboard.vmambaUsage}">0</strong></div><div class="distribution-track"><span class="distribution-fill vmamba" th:style="'--chart-value:' + ${dashboard.vmambaRate} + '%'"></span></div></div>
+                    </div>
+                </article>
+                <article class="dashboard-chart-card" aria-labelledby="adminDetectionTitle">
+                    <div class="dashboard-card-heading"><div><h3 id="adminDetectionTitle">Kết quả dự đoán</h3><p>Không phải chỉ số độ nhạy.</p></div><i class="bi bi-pie-chart" aria-hidden="true"></i></div>
+                    <div class="distribution-chart" role="img" aria-label="Phân bố detected và not detected">
+                        <div class="distribution-row"><div><span class="chart-key detected"></span><span>Có phát hiện</span><strong th:text="${dashboard.detected}">0</strong></div><div class="distribution-track"><span class="distribution-fill detected" th:style="'--chart-value:' + ${dashboard.detectedRate} + '%'"></span></div></div>
+                        <div class="distribution-row"><div><span class="chart-key clear"></span><span>Không phát hiện</span><strong th:text="${dashboard.notDetected}">0</strong></div><div class="distribution-track"><span class="distribution-fill clear" th:style="'--chart-value:' + ${dashboard.notDetectedRate} + '%'"></span></div></div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <div class="admin-dashboard-lists">
+            <section aria-labelledby="recentUsersTitle">
+                <div class="dashboard-section-heading compact">
+                    <div><span>7 ngày</span><h2 id="recentUsersTitle">User mới</h2></div>
+                </div>
+                <div class="dashboard-simple-list" th:if="${!#lists.isEmpty(dashboard.recentUsers)}">
+                    <article th:each="user : ${dashboard.recentUsers}">
+                        <div class="dashboard-list-icon"><i class="bi bi-person" aria-hidden="true"></i></div>
+                        <div><h3 th:text="${user.fullName}">Người dùng</h3><p th:text="${user.email}">email@example.com</p></div>
+                        <div class="dashboard-list-end"><span th:text="${user.role}">USER</span><time th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy')}">26/07/2026</time></div>
+                    </article>
+                </div>
+                <div class="dashboard-list-empty" th:if="${#lists.isEmpty(dashboard.recentUsers)}"><i class="bi bi-person-plus" aria-hidden="true"></i><p>Không có user mới trong 7 ngày.</p></div>
+            </section>
+
+            <section aria-labelledby="adminRecentActivityTitle">
+                <div class="dashboard-section-heading compact">
+                    <div><span>Gần đây</span><h2 id="adminRecentActivityTitle">Hoạt động inference</h2></div>
+                </div>
+                <div class="dashboard-simple-list" th:if="${!#lists.isEmpty(dashboard.recentActivities)}">
+                    <article th:each="activity : ${dashboard.recentActivities}">
+                        <div class="dashboard-list-icon"><i class="bi bi-cpu" aria-hidden="true"></i></div>
+                        <div><h3 th:text="${activity.modelLabel}">YOLO26n-seg</h3><p><span th:text="${activity.userDisplay}">Người dùng</span> · <span th:text="${activity.activityType}">Phân tích đơn</span></p></div>
+                        <div class="dashboard-list-end"><span th:text="${activity.detected ? 'Có phát hiện' : 'Không phát hiện'}">Có phát hiện</span><time th:if="${activity.createdAt != null}" th:text="${#temporals.format(activity.createdAt, 'HH:mm · dd/MM')}">09:30 · 26/07</time></div>
+                    </article>
+                </div>
+                <div class="dashboard-list-empty" th:if="${#lists.isEmpty(dashboard.recentActivities)}"><i class="bi bi-clock-history" aria-hidden="true"></i><p>Chưa có hoạt động inference.</p></div>
+            </section>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

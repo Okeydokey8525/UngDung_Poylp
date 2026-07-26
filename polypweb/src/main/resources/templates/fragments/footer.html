@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<footer class="site-footer" th:fragment="footer">
+    <div class="container">
+        <div class="row g-4 footer-main">
+            <div class="col-lg-6">
+                <a class="brand-lockup footer-brand" th:href="@{/}">
+                    <span class="brand-mark" aria-hidden="true"><i class="bi bi-bounding-box-circles"></i></span>
+                    <span>Polyp<span class="brand-accent">Vision</span></span>
+                </a>
+                <p class="footer-project">
+                    Nghiên cứu phương pháp tích hợp VMamba vào mô hình YOLO26-seg trong phân đoạn polyp
+                    từ ảnh nội soi đại trực tràng.
+                </p>
+                <span class="research-label"><i class="bi bi-mortarboard"></i> Hệ thống phục vụ nghiên cứu học thuật</span>
+            </div>
+            <div class="col-6 col-lg-3">
+                <h2 class="footer-heading">Liên kết nhanh</h2>
+                <ul class="footer-links">
+                    <li><a th:href="@{/diagnose}">Phân tích ảnh</a></li>
+                    <li><a th:href="@{/diagnoses/demo}">Kết quả mẫu</a></li>
+                    <li><a th:href="@{/history}">Lịch sử</a></li>
+                    <li><a th:href="@{/about}">Giới thiệu</a></li>
+                </ul>
+            </div>
+            <div class="col-6 col-lg-3">
+                <h2 class="footer-heading">Thông tin</h2>
+                <ul class="footer-links">
+                    <li><a th:href="@{/privacy}">Quyền riêng tư</a></li>
+                    <li><a th:href="@{/terms}">Điều khoản sử dụng</a></li>
+                    <li><a th:href="@{/disclaimer}">Cảnh báo nghiên cứu</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-disclaimer">
+            <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+            <p>PolypVision phục vụ nghiên cứu và minh họa, không phải thiết bị y tế và không thay thế chẩn đoán
+                hoặc đánh giá của bác sĩ.</p>
+        </div>
+        <div class="footer-bottom">
+            <span>© <span data-current-year>2026</span> PolypVision</span>
+            <span>Research interface · Phiên bản minh họa</span>
+        </div>
+    </div>
+</footer>
+<th:block th:fragment="scripts">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+            crossorigin="anonymous"></script>
+    <script th:src="@{/js/upload-utils.js}"></script>
+    <script th:src="@{/js/main.js}"></script>
+</th:block>
+</body>
+</html>

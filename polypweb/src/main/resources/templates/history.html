@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero compact-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Lịch sử</li>
+                </ol>
+            </nav>
+            <div class="row align-items-end g-3">
+                <div class="col-lg-8">
+                    <span class="eyebrow">Research records</span>
+                    <h1>Lịch sử phân tích</h1>
+                    <p>Tìm kiếm và phân trang metadata các lượt inference đơn của tài khoản hiện tại.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a class="btn btn-primary" th:href="@{/diagnose}">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i> Phân tích mới
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container history-content">
+        <nav class="history-mode-tabs" aria-label="Loại lịch sử">
+            <a class="active" th:href="@{/history}" aria-current="page">
+                <i class="bi bi-image" aria-hidden="true"></i> Phân tích đơn
+            </a>
+            <a th:href="@{/comparisons}">
+                <i class="bi bi-columns-gap" aria-hidden="true"></i> So sánh mô hình
+            </a>
+        </nav>
+
+        <div class="filter-validation-alert" role="alert"
+             th:if="${!#lists.isEmpty(validationMessages)}" id="historyFilterErrors">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+            <div>
+                <strong>Một số bộ lọc đã được điều chỉnh</strong>
+                <ul><li th:each="message : ${validationMessages}" th:text="${message}">Thông báo</li></ul>
+            </div>
+        </div>
+
+        <form class="history-filter-panel" method="get" th:action="@{/history}"
+              th:attr="aria-describedby=${#lists.isEmpty(validationMessages)
+                ? 'historyFilterHelp' : 'historyFilterHelp historyFilterErrors'}">
+            <p class="visually-hidden" id="historyFilterHelp">
+                Các bộ lọc được áp dụng ở MongoDB và giữ nguyên khi chuyển trang.
+            </p>
+            <div class="history-filter-grid">
+                <div class="filter-field filter-keyword">
+                    <label for="historyKeyword">Tìm tên file</label>
+                    <input class="form-control" id="historyKeyword" name="keyword" type="search"
+                           maxlength="100" placeholder="Ví dụ: kvasir"
+                           th:value="${filter.keyword}">
+                </div>
+                <div class="filter-field">
+                    <label for="historyModel">Mô hình</label>
+                    <select class="form-select" id="historyModel" name="model">
+                        <option value="ALL" th:selected="${filter.model == 'ALL'}">Tất cả</option>
+                        <option value="YOLO26n-seg"
+                                th:selected="${filter.model == 'YOLO26n-seg'}">YOLO26n-seg</option>
+                        <option value="YOLO26n-VMamba-seg"
+                                th:selected="${filter.model == 'YOLO26n-VMamba-seg'}">YOLO26n-VMamba-seg</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="historyDetected">Trạng thái</label>
+                    <select class="form-select" id="historyDetected" name="detected">
+                        <option value="ALL" th:selected="${filter.detected == 'ALL'}">Tất cả</option>
+                        <option value="true" th:selected="${filter.detected == 'true'}">Có phát hiện</option>
+                        <option value="false" th:selected="${filter.detected == 'false'}">Không phát hiện</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="historyDateFrom">Từ ngày</label>
+                    <input class="form-control" id="historyDateFrom" name="dateFrom" type="date"
+                           th:value="${filter.dateFrom}">
+                </div>
+                <div class="filter-field">
+                    <label for="historyDateTo">Đến ngày</label>
+                    <input class="form-control" id="historyDateTo" name="dateTo" type="date"
+                           th:value="${filter.dateTo}">
+                </div>
+                <div class="filter-field">
+                    <label for="historySort">Sắp xếp</label>
+                    <select class="form-select" id="historySort" name="sort">
+                        <option value="newest" th:selected="${filter.sort == 'newest'}">Mới nhất</option>
+                        <option value="oldest" th:selected="${filter.sort == 'oldest'}">Cũ nhất</option>
+                        <option value="confidence-desc" th:selected="${filter.sort == 'confidence-desc'}">Confidence giảm dần</option>
+                        <option value="confidence-asc" th:selected="${filter.sort == 'confidence-asc'}">Confidence tăng dần</option>
+                        <option value="processing-desc" th:selected="${filter.sort == 'processing-desc'}">Xử lý lâu nhất</option>
+                        <option value="processing-asc" th:selected="${filter.sort == 'processing-asc'}">Xử lý nhanh nhất</option>
+                    </select>
+                </div>
+                <div class="filter-field filter-size">
+                    <label for="historySize">Số dòng</label>
+                    <select class="form-select" id="historySize" name="size">
+                        <option value="10" th:selected="${filter.pageSize == 10}">10</option>
+                        <option value="20" th:selected="${filter.pageSize == 20}">20</option>
+                        <option value="50" th:selected="${filter.pageSize == 50}">50</option>
+                    </select>
+                </div>
+            </div>
+            <div class="history-filter-actions">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-funnel" aria-hidden="true"></i> Áp dụng
+                </button>
+                <a class="btn btn-outline-secondary" th:href="@{/history}">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Đặt lại
+                </a>
+            </div>
+        </form>
+
+        <div class="history-summary" aria-live="polite">
+            <div>
+                <span>Tổng kết quả</span>
+                <strong th:text="${pagination.totalItems}">0</strong>
+            </div>
+            <span class="history-range"
+                  th:text="${pagination.totalItems == 0
+                    ? 'Không có bản ghi phù hợp'
+                    : 'Hiển thị ' + pagination.firstItem + '–' + pagination.lastItem
+                      + ' trong tổng số ' + pagination.totalItems + ' kết quả.'}">
+                Không có bản ghi phù hợp
+            </span>
+        </div>
+
+        <div class="history-table-card" th:if="${pagination.totalItems > 0}">
+            <div class="table-responsive history-desktop-table">
+                <table class="table history-table align-middle">
+                    <caption class="visually-hidden">Danh sách lịch sử phân tích đơn đã lọc</caption>
+                    <thead>
+                    <tr>
+                        <th scope="col">Ảnh / Tên file</th>
+                        <th scope="col">Mô hình</th>
+                        <th scope="col">Kết quả</th>
+                        <th scope="col">Confidence</th>
+                        <th scope="col">Xử lý AI</th>
+                        <th scope="col">Thời gian</th>
+                        <th scope="col" class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${historyItems}">
+                        <td>
+                            <div class="file-cell">
+                                <div class="history-thumbnail">
+                                    <img th:src="${item.originalImageUrl}" alt="">
+                                </div>
+                                <div><strong th:text="${item.fileName}">case.jpg</strong><small th:text="${item.id}">id</small></div>
+                            </div>
+                        </td>
+                        <td><span class="model-pill" th:text="${item.modelType}">YOLO26n-seg</span></td>
+                        <td>
+                            <span class="table-status detected" th:if="${item.detected}">
+                                <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i> Có phát hiện
+                            </span>
+                            <span class="table-status clear" th:unless="${item.detected}">
+                                <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Không phát hiện
+                            </span>
+                        </td>
+                        <td th:text="${#numbers.formatDecimal(item.confidence, 1, 1) + '%'}">0,0%</td>
+                        <td th:text="${#numbers.formatDecimal(item.processingTimeMs, 1, 1) + ' ms'}">0,0 ms</td>
+                        <td>
+                            <time th:datetime="${item.createdAt}"
+                                  th:text="${#temporals.format(item.createdAt, 'HH:mm · dd/MM/yyyy')}">09:30 · 22/07/2026</time>
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a class="btn btn-sm btn-light-primary"
+                                   th:href="@{/diagnoses/{id}(id=${item.id})}">
+                                    <i class="bi bi-eye" aria-hidden="true"></i><span class="visually-hidden">Xem chi tiết</span>
+                                </a>
+                                <a class="btn btn-sm btn-light-primary"
+                                   th:href="@{/diagnoses/{id}/metadata.json(id=${item.id})}">
+                                    <i class="bi bi-filetype-json" aria-hidden="true"></i><span class="visually-hidden">Tải metadata JSON</span>
+                                </a>
+                                <form th:action="@{/history/{id}/delete(id=${item.id})}" method="post"
+                                      data-delete-history-form>
+                                    <button class="btn btn-sm btn-light-danger" type="submit">
+                                        <i class="bi bi-trash3" aria-hidden="true"></i><span class="visually-hidden">Xóa bản ghi</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="history-mobile-list" aria-label="Lịch sử phân tích dạng thẻ">
+                <article class="history-mobile-card" th:each="item : ${historyItems}">
+                    <div class="history-mobile-heading">
+                        <div class="history-thumbnail"><img th:src="${item.originalImageUrl}" alt=""></div>
+                        <div><h2 th:text="${item.fileName}">case.jpg</h2><span class="model-pill" th:text="${item.modelType}">Model</span></div>
+                    </div>
+                    <dl class="history-mobile-metadata">
+                        <div><dt>Kết quả</dt><dd th:text="${item.detected ? 'Có phát hiện' : 'Không phát hiện'}">Kết quả</dd></div>
+                        <div><dt>Confidence</dt><dd th:text="${#numbers.formatDecimal(item.confidence, 1, 1) + '%'}">0,0%</dd></div>
+                        <div><dt>Xử lý AI</dt><dd th:text="${#numbers.formatDecimal(item.processingTimeMs, 1, 1) + ' ms'}">0,0 ms</dd></div>
+                        <div><dt>Thời gian</dt><dd th:text="${#temporals.format(item.createdAt, 'HH:mm · dd/MM/yyyy')}">Thời gian</dd></div>
+                    </dl>
+                    <div class="history-mobile-actions">
+                        <a class="btn btn-light-primary" th:href="@{/diagnoses/{id}(id=${item.id})}">
+                            <i class="bi bi-eye" aria-hidden="true"></i> Xem chi tiết
+                        </a>
+                        <a class="btn btn-outline-secondary" th:href="@{/diagnoses/{id}/metadata.json(id=${item.id})}">
+                            <i class="bi bi-filetype-json" aria-hidden="true"></i> Metadata
+                        </a>
+                        <form th:action="@{/history/{id}/delete(id=${item.id})}" method="post"
+                              data-delete-history-form>
+                            <button class="btn btn-light-danger" type="submit">
+                                <i class="bi bi-trash3" aria-hidden="true"></i> Xóa
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            </div>
+
+            <div class="history-pagination">
+                <span th:text="${'Trang ' + pagination.displayPage + '/' + pagination.totalPages}">Trang 1/1</span>
+                <nav aria-label="Phân trang lịch sử phân tích">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" th:classappend="${pagination.first ? ' disabled' : ''}">
+                            <span class="page-link" th:if="${pagination.first}">Đầu</span>
+                            <a class="page-link" th:unless="${pagination.first}"
+                               th:href="@{/history(page=0,size=${filter.pageSize},keyword=${filter.keyword},model=${filter.model},detected=${filter.detected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">Đầu</a>
+                        </li>
+                        <li class="page-item" th:classappend="${pagination.first ? ' disabled' : ''}">
+                            <span class="page-link" th:if="${pagination.first}">Trước</span>
+                            <a class="page-link" th:unless="${pagination.first}"
+                               th:href="@{/history(page=${pagination.previousPage},size=${filter.pageSize},keyword=${filter.keyword},model=${filter.model},detected=${filter.detected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">Trước</a>
+                        </li>
+                        <li class="page-item" th:each="pageNumber : ${pagination.pageNumbers}"
+                            th:classappend="${pageNumber == pagination.currentPage ? ' active' : ''}">
+                            <span class="page-link" aria-current="page"
+                                  th:if="${pageNumber == pagination.currentPage}"
+                                  th:text="${pageNumber + 1}">1</span>
+                            <a class="page-link" th:unless="${pageNumber == pagination.currentPage}"
+                               th:text="${pageNumber + 1}"
+                               th:href="@{/history(page=${pageNumber},size=${filter.pageSize},keyword=${filter.keyword},model=${filter.model},detected=${filter.detected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">2</a>
+                        </li>
+                        <li class="page-item" th:classappend="${pagination.last ? ' disabled' : ''}">
+                            <span class="page-link" th:if="${pagination.last}">Sau</span>
+                            <a class="page-link" th:unless="${pagination.last}"
+                               th:href="@{/history(page=${pagination.nextPage},size=${filter.pageSize},keyword=${filter.keyword},model=${filter.model},detected=${filter.detected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">Sau</a>
+                        </li>
+                        <li class="page-item" th:classappend="${pagination.last ? ' disabled' : ''}">
+                            <span class="page-link" th:if="${pagination.last}">Cuối</span>
+                            <a class="page-link" th:unless="${pagination.last}"
+                               th:href="@{/history(page=${pagination.lastPage},size=${filter.pageSize},keyword=${filter.keyword},model=${filter.model},detected=${filter.detected},dateFrom=${filter.dateFrom},dateTo=${filter.dateTo},sort=${filter.sort})}">Cuối</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <div class="history-empty" th:if="${pagination.totalItems == 0}">
+            <div class="empty-icon"><i class="bi bi-inbox" aria-hidden="true"></i></div>
+            <h2>Không có kết quả phù hợp</h2>
+            <p>Hãy thay đổi bộ lọc hoặc tạo một lượt phân tích mới.</p>
+            <a class="btn btn-outline-primary" th:href="@{/history}">Đặt lại bộ lọc</a>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

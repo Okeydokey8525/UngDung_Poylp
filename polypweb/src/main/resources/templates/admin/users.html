@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main account-main" tabindex="-1">
+    <section class="page-hero account-hero">
+        <div class="container">
+            <span class="eyebrow"><i class="bi bi-shield-lock" aria-hidden="true"></i> ADMIN</span>
+            <h1>Quản trị người dùng</h1>
+            <p>Khóa, mở khóa và đổi quyền có kiểm soát. Thao tác này không xóa lịch sử hoặc ảnh.</p>
+        </div>
+    </section>
+
+    <section class="container account-content">
+        <div class="admin-table-card">
+            <div class="admin-table-heading">
+                <div>
+                    <span>Tài khoản MongoDB</span>
+                    <h2>Danh sách người dùng</h2>
+                </div>
+                <span class="account-role" th:text="${#lists.size(users) + ' tài khoản'}">0 tài khoản</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle admin-users-table">
+                    <caption class="visually-hidden">Danh sách tài khoản PolypVision</caption>
+                    <thead>
+                    <tr>
+                        <th scope="col">Người dùng</th>
+                        <th scope="col">Quyền</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col">Ngày tạo</th>
+                        <th scope="col">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="user : ${users}">
+                        <td>
+                            <strong th:text="${user.fullName}">Người dùng</strong>
+                            <small th:text="${user.email}">email@example.com</small>
+                        </td>
+                        <td><span class="account-role" th:text="${user.role}">USER</span></td>
+                        <td>
+                            <span class="account-status"
+                                  th:classappend="${user.enabled ? ' enabled' : ' disabled'}"
+                                  th:text="${user.enabled ? 'Hoạt động' : 'Đã khóa'}">Hoạt động</span>
+                        </td>
+                        <td th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2026 08:00</td>
+                        <td>
+                            <div class="admin-actions">
+                                <form th:action="@{/admin/users/{id}/toggle-enabled(id=${user.id})}" method="post">
+                                    <button class="btn btn-sm"
+                                            th:classappend="${user.enabled ? 'btn-outline-danger' : 'btn-outline-primary'}"
+                                            type="submit"
+                                            th:disabled="${currentUser.id == user.id}"
+                                            th:title="${currentUser.id == user.id ? 'Bạn không thể tự khóa tài khoản đang dùng.' : ''}">
+                                        <i class="bi" th:classappend="${user.enabled ? 'bi-lock' : 'bi-unlock'}"
+                                           aria-hidden="true"></i>
+                                        <span th:text="${user.enabled ? 'Khóa' : 'Mở khóa'}">Khóa</span>
+                                    </button>
+                                </form>
+                                <form th:action="@{/admin/users/{id}/role(id=${user.id})}" method="post"
+                                      class="admin-role-form">
+                                    <label class="visually-hidden" th:for="${'role-' + user.id}">Quyền tài khoản</label>
+                                    <select class="form-select form-select-sm" name="role"
+                                            th:id="${'role-' + user.id}" aria-label="Chọn quyền tài khoản">
+                                        <option th:each="role : ${roles}" th:value="${role}" th:text="${role}"
+                                                th:selected="${role == user.role}">USER</option>
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-primary" type="submit">Lưu quyền</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(users)}">
+                        <td colspan="5" class="text-center py-5">Chưa có tài khoản nào.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

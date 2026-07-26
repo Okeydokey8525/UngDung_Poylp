@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero result-page-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/compare}">So sánh mô hình</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Kết quả</li>
+                </ol>
+            </nav>
+            <div class="result-title-row">
+                <div>
+                    <span class="eyebrow">Phiên so sánh · <span th:text="${comparison.shortGroupId}">a1b2c3d4</span></span>
+                    <h1>Kết quả Baseline và VMamba</h1>
+                    <p th:text="${comparison.originalFileName}">noi-soi.jpg</p>
+                </div>
+                <div class="comparison-date">
+                    <i class="bi bi-calendar3"></i>
+                    <span th:text="${#temporals.format(comparison.createdAt, 'HH:mm · dd/MM/yyyy')}">09:30 · 22/07/2026</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container result-content comparison-result-content">
+        <article class="result-image-card comparison-original-card">
+            <div class="result-card-header">
+                <div><span class="view-dot original"></span><h2>Ảnh gốc dùng chung</h2></div>
+                <span>Input</span>
+            </div>
+            <div class="result-image-real-wrap">
+                <img class="result-image-real" th:src="${comparison.originalImageUrl}"
+                     alt="Ảnh nội soi gốc dùng chung cho hai mô hình">
+                <span class="image-watermark">SHARED INPUT</span>
+            </div>
+        </article>
+
+        <div class="comparison-model-results">
+            <article class="comparison-model-result baseline">
+                <div class="comparison-model-header">
+                    <div>
+                        <span class="model-family-badge baseline">Baseline</span>
+                        <h2 th:text="${comparison.baselineResult.modelType}">YOLO26n-seg</h2>
+                    </div>
+                    <span class="model-ready"><span class="status-dot"></span> Hoàn tất</span>
+                </div>
+                <div class="result-image-real-wrap">
+                    <img class="result-image-real" th:src="${comparison.baselineResult.resultImageUrl}"
+                         alt="Overlay phân đoạn của YOLO26n-seg">
+                </div>
+                <div class="comparison-metrics">
+                    <div><span>Phát hiện</span><strong th:text="${comparison.baselineResult.detected ? 'Có vùng nghi ngờ' : 'Không phát hiện'}">Có</strong></div>
+                    <div><span>Confidence cao nhất</span><strong th:text="${#numbers.formatDecimal(comparison.baselineResult.confidence, 1, 1) + '%'}">80,0%</strong></div>
+                    <div><span>Số vùng mask</span><strong th:text="${comparison.baselineResult.maskCount}">1</strong></div>
+                    <div><span>Thời gian xử lý AI</span><strong th:text="${#numbers.formatDecimal(comparison.baselineResult.processingTimeMs, 1, 1) + ' ms'}">120 ms</strong></div>
+                    <div><span>Nhãn</span><strong th:text="${comparison.baselineResult.label ?: 'Không có'}">polyp</strong></div>
+                </div>
+            </article>
+
+            <article class="comparison-model-result vmamba">
+                <div class="comparison-model-header">
+                    <div>
+                        <span class="model-family-badge vmamba">VMamba</span>
+                        <h2 th:text="${comparison.vmambaResult.modelType}">YOLO26n-VMamba-seg</h2>
+                    </div>
+                    <span class="model-ready"><span class="status-dot"></span> Hoàn tất</span>
+                </div>
+                <div class="result-image-real-wrap">
+                    <img class="result-image-real" th:src="${comparison.vmambaResult.resultImageUrl}"
+                         alt="Overlay phân đoạn của YOLO26n-VMamba-seg">
+                </div>
+                <div class="comparison-metrics">
+                    <div><span>Phát hiện</span><strong th:text="${comparison.vmambaResult.detected ? 'Có vùng nghi ngờ' : 'Không phát hiện'}">Có</strong></div>
+                    <div><span>Confidence cao nhất</span><strong th:text="${#numbers.formatDecimal(comparison.vmambaResult.confidence, 1, 1) + '%'}">80,0%</strong></div>
+                    <div><span>Số vùng mask</span><strong th:text="${comparison.vmambaResult.maskCount}">1</strong></div>
+                    <div><span>Thời gian xử lý AI</span><strong th:text="${#numbers.formatDecimal(comparison.vmambaResult.processingTimeMs, 1, 1) + ' ms'}">210 ms</strong></div>
+                    <div><span>Nhãn</span><strong th:text="${comparison.vmambaResult.label ?: 'Không có'}">polyp</strong></div>
+                </div>
+            </article>
+        </div>
+
+        <article class="workspace-card comparison-table-card">
+            <div class="card-heading">
+                <div><span class="card-step">Đối chiếu</span><h2>Bảng kết quả trên cùng một ảnh</h2></div>
+            </div>
+            <div class="table-responsive comparison-table-wrap">
+                <table class="table comparison-table align-middle">
+                    <thead><tr><th scope="col">Chỉ số</th><th scope="col">Baseline</th><th scope="col">VMamba</th></tr></thead>
+                    <tbody>
+                    <tr><th scope="row">Model</th><td th:text="${comparison.baselineResult.modelType}">YOLO26n-seg</td><td th:text="${comparison.vmambaResult.modelType}">YOLO26n-VMamba-seg</td></tr>
+                    <tr><th scope="row">Phát hiện</th><td th:text="${comparison.baselineResult.detected ? 'Có' : 'Không'}">Có</td><td th:text="${comparison.vmambaResult.detected ? 'Có' : 'Không'}">Có</td></tr>
+                    <tr><th scope="row">Confidence cao nhất</th><td th:text="${#numbers.formatDecimal(comparison.baselineResult.confidence, 1, 1) + '%'}">80%</td><td th:text="${#numbers.formatDecimal(comparison.vmambaResult.confidence, 1, 1) + '%'}">80%</td></tr>
+                    <tr><th scope="row">Số vùng mask</th><td th:text="${comparison.baselineResult.maskCount}">1</td><td th:text="${comparison.vmambaResult.maskCount}">1</td></tr>
+                    <tr><th scope="row">Thời gian xử lý AI</th><td th:text="${#numbers.formatDecimal(comparison.baselineResult.processingTimeMs, 1, 1) + ' ms'}">120 ms</td><td th:text="${#numbers.formatDecimal(comparison.vmambaResult.processingTimeMs, 1, 1) + ' ms'}">210 ms</td></tr>
+                    <tr><th scope="row">Loại mô hình</th><td>Baseline</td><td>VMamba</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="comparison-table-note">Bảng chỉ mô tả hai kết quả trên ảnh này; không tự động xác định mô hình tốt hơn.</p>
+        </article>
+
+        <div class="result-actions comparison-actions">
+            <a class="btn btn-primary" th:href="@{/compare}"><i class="bi bi-plus-lg"></i> So sánh ảnh khác</a>
+            <a class="btn btn-outline-primary" th:href="@{/diagnose}"><i class="bi bi-image"></i> Phân tích một mô hình</a>
+            <a class="btn btn-outline-primary" th:href="@{/comparisons}"><i class="bi bi-clock-history"></i> Lịch sử so sánh</a>
+            <a class="btn btn-outline-secondary"
+               th:href="@{/diagnoses/{id}/download/original(id=${comparison.baselineResult.id})}">
+                <i class="bi bi-download" aria-hidden="true"></i> Tải ảnh gốc
+            </a>
+            <a class="btn btn-outline-secondary"
+               th:href="@{/diagnoses/{id}/download/result(id=${comparison.baselineResult.id})}">
+                <i class="bi bi-download" aria-hidden="true"></i> Tải overlay Baseline
+            </a>
+            <a class="btn btn-outline-secondary"
+               th:href="@{/diagnoses/{id}/download/result(id=${comparison.vmambaResult.id})}">
+                <i class="bi bi-download" aria-hidden="true"></i> Tải overlay VMamba
+            </a>
+            <a class="btn btn-outline-secondary"
+               th:href="@{/comparisons/{id}/metadata.json(id=${comparison.comparisonGroupId})}">
+                <i class="bi bi-filetype-json" aria-hidden="true"></i> Tải metadata JSON
+            </a>
+            <form th:action="@{/comparisons/{id}/delete(id=${comparison.comparisonGroupId})}" method="post"
+                  data-delete-comparison-form>
+                <button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash3"></i> Xóa phiên so sánh</button>
+            </form>
+        </div>
+
+        <div class="research-alert" role="note">
+            <i class="bi bi-shield-exclamation"></i>
+            <div>
+                <strong>PolypVision phục vụ nghiên cứu và minh họa, không phải thiết bị y tế.</strong>
+                <span>Không thay thế chẩn đoán hoặc đánh giá của bác sĩ; một ảnh không đủ để kết luận mô hình nào tốt hơn.</span>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

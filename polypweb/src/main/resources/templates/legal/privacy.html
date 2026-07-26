@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+<main id="main-content" class="page-main legal-page" tabindex="-1">
+    <section class="legal-hero">
+        <div class="container">
+            <span class="eyebrow">PolypVision Research</span>
+            <h1>Chính sách quyền riêng tư</h1>
+            <p>Thông tin này mô tả cách phiên bản nghiên cứu hiện tại xử lý dữ liệu trong phạm vi hệ thống.</p>
+        </div>
+    </section>
+    <section class="container legal-content">
+        <article>
+            <h2>Dữ liệu được xử lý</h2>
+            <p>Hệ thống lưu thông tin tài khoản, ảnh nội soi người dùng tải lên, ảnh overlay và metadata inference
+                như mô hình, nhãn, confidence, thời gian xử lý và thời điểm tạo.</p>
+        </article>
+        <article>
+            <h2>Mục đích và nơi lưu trữ</h2>
+            <p>Dữ liệu được dùng để cung cấp chức năng phân tích, so sánh và lịch sử nghiên cứu. Phiên bản hiện tại
+                lưu ảnh trong storage cục bộ và metadata trong MongoDB do đơn vị vận hành quản lý.</p>
+        </article>
+        <article>
+            <h2>Thời gian lưu và quyền của người dùng</h2>
+            <p>Dữ liệu được giữ cho đến khi người dùng xóa bản ghi, quản trị viên xử lý theo yêu cầu hợp lệ hoặc
+                hệ thống nghiên cứu kết thúc. Người dùng có thể xem, tải xuống và xóa dữ liệu thuộc tài khoản của mình.</p>
+        </article>
+        <article>
+            <h2>Chia sẻ và tái sử dụng</h2>
+            <p>PolypVision không bán dữ liệu cho bên thứ ba. Ảnh tải lên không được dùng để huấn luyện lại mô hình
+                nếu chưa có sự đồng ý phù hợp của người dùng và quy trình nghiên cứu liên quan.</p>
+        </article>
+        <article>
+            <h2>Giới hạn và liên hệ</h2>
+            <p>Đây là hệ thống nghiên cứu, chưa phải nền tảng lưu trữ hồ sơ y tế. Không tải lên dữ liệu mà bạn không
+                có quyền sử dụng. Để yêu cầu hỗ trợ về dữ liệu, hãy liên hệ quản trị viên của phiên triển khai.</p>
+        </article>
+        <p class="legal-updated">Cập nhật cho phiên bản nghiên cứu hiện tại.</p>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

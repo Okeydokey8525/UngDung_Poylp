@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('Tệp vượt quá giới hạn')}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+<main id="main-content" class="error-main" tabindex="-1">
+    <section class="container error-state" aria-labelledby="errorTitle">
+        <span class="error-code" aria-hidden="true">413</span>
+        <div class="error-icon"><i class="bi bi-file-earmark-x" aria-hidden="true"></i></div>
+        <h1 id="errorTitle">Tệp vượt quá giới hạn</h1>
+        <p>Ảnh tải lên phải có dung lượng không quá 10 MB.</p>
+        <p class="error-request-id" th:if="${requestId != null}">Mã yêu cầu: <code th:text="${requestId}"></code></p>
+        <div class="error-actions"><a class="btn btn-primary" th:href="@{/diagnose}">Chọn ảnh khác</a></div>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

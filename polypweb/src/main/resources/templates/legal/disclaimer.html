@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+<main id="main-content" class="page-main legal-page" tabindex="-1">
+    <section class="legal-hero">
+        <div class="container">
+            <span class="eyebrow">Cảnh báo quan trọng</span>
+            <h1>Cảnh báo nghiên cứu</h1>
+            <p>PolypVision phục vụ nghiên cứu và minh họa, không phải thiết bị y tế và không thay thế chẩn đoán
+                hoặc đánh giá của bác sĩ.</p>
+        </div>
+    </section>
+    <section class="container legal-content">
+        <div class="research-alert legal-alert" role="alert">
+            <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+            <div>
+                <strong>Không sử dụng kết quả để tự chẩn đoán hoặc tự điều trị.</strong>
+                <span>Mọi ảnh và kết quả cần được chuyên gia y tế có chuyên môn xem xét trong bối cảnh lâm sàng phù hợp.</span>
+            </div>
+        </div>
+        <article>
+            <h2>Cách hiểu kết quả</h2>
+            <p>Confidence là độ tin cậy đầu ra của mô hình cho vùng dự đoán, không phải xác suất mắc bệnh. Một ảnh
+                đơn lẻ cũng không đủ để kết luận mô hình baseline hay VMamba tốt hơn.</p>
+        </article>
+        <article>
+            <h2>Giới hạn nghiên cứu</h2>
+            <p>Mô hình có thể bỏ sót, phát hiện nhầm hoặc tạo mask không chính xác. Kết quả chưa được xác nhận để
+                sử dụng như một thiết bị y tế hoặc công cụ chẩn đoán độc lập.</p>
+        </article>
+        <article>
+            <h2>Trường hợp khẩn cấp</h2>
+            <p>Nếu có triệu chứng nghiêm trọng hoặc tình huống khẩn cấp, không chờ kết quả từ hệ thống này; hãy liên
+                hệ ngay cơ sở y tế hoặc dịch vụ cấp cứu phù hợp tại nơi bạn đang ở.</p>
+        </article>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

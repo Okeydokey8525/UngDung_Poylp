@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('Không thể xử lý ảnh')}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+<main id="main-content" class="error-main" tabindex="-1">
+    <section class="container error-state" aria-labelledby="errorTitle">
+        <span class="error-code" aria-hidden="true">422</span>
+        <div class="error-icon"><i class="bi bi-image" aria-hidden="true"></i></div>
+        <h1 id="errorTitle">Không thể xử lý ảnh</h1>
+        <p>Nội dung ảnh hoặc lựa chọn mô hình không hợp lệ cho yêu cầu này.</p>
+        <p class="error-request-id" th:if="${requestId != null}">Mã yêu cầu: <code th:text="${requestId}"></code></p>
+        <div class="error-actions"><a class="btn btn-primary" th:href="@{/diagnose}">Thử ảnh khác</a></div>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

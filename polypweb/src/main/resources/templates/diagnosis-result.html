@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero result-page-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/diagnose}">Phân tích ảnh</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Kết quả</li>
+                </ol>
+            </nav>
+            <div class="result-title-row">
+                <div>
+                    <span class="eyebrow">Mã lượt phân tích · <span th:text="${result.id}">PV-DEMO-001</span></span>
+                    <div class="result-heading-line">
+                        <h1 th:text="${'Kết quả phân đoạn ' + result.modelType}">Kết quả phân đoạn YOLO26n-seg</h1>
+                        <span class="model-family-badge"
+                              th:classappend="${vmambaModel ? ' vmamba' : ' baseline'}"
+                              th:text="${vmambaModel ? 'VMamba' : 'Baseline'}">Baseline</span>
+                    </div>
+                    <p th:text="${result.fileName}">noi-soi-demo.jpg</p>
+                </div>
+                <span class="result-status-badge detected" th:if="${result.detected}">
+                    <i class="bi bi-exclamation-diamond-fill"></i>
+                    Đã phát hiện vùng nghi ngờ polyp
+                </span>
+                <span class="result-status-badge clear" th:unless="${result.detected}">
+                    <i class="bi bi-check-circle-fill"></i>
+                    Không phát hiện vùng nghi ngờ
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <section class="container result-content">
+        <div class="image-comparison-grid">
+            <article class="result-image-card">
+                <div class="result-card-header">
+                    <div><span class="view-dot original"></span><h2>Ảnh gốc</h2></div>
+                    <span>Input</span>
+                </div>
+                <div class="result-image-real-wrap"
+                     th:if="${result.originalImageUrl != null and !#strings.isEmpty(result.originalImageUrl)}">
+                    <img class="result-image-real"
+                         th:src="${result.originalImageUrl}"
+                         alt="Ảnh nội soi gốc đã lưu">
+                    <span class="image-watermark">ORIGINAL</span>
+                </div>
+                <div class="result-image-unavailable"
+                     th:unless="${result.originalImageUrl != null and !#strings.isEmpty(result.originalImageUrl)}">
+                    <i class="bi bi-image"></i>
+                    <strong>Không có ảnh gốc</strong>
+                    <span>Bản ghi cũ này chỉ chứa metadata.</span>
+                </div>
+            </article>
+            <article class="result-image-card">
+                <div class="result-card-header">
+                    <div><span class="view-dot segmented"></span><h2>Ảnh sau phân đoạn</h2></div>
+                    <span>Output</span>
+                </div>
+                <div class="result-image-real-wrap"
+                     th:if="${result.resultImageUrl != null and !#strings.isEmpty(result.resultImageUrl)}">
+                    <img class="result-image-real"
+                         th:src="${result.resultImageUrl}"
+                         th:alt="${'Ảnh nội soi đã được ' + result.modelType + ' phủ mask phân đoạn'}">
+                    <span class="image-watermark" th:text="${result.modelType}">YOLO26n-seg</span>
+                </div>
+                <div class="result-image-unavailable"
+                     th:unless="${result.resultImageUrl != null and !#strings.isEmpty(result.resultImageUrl)}">
+                    <i class="bi bi-image"></i>
+                    <strong>Không có ảnh overlay</strong>
+                    <span>Bản ghi cũ này chỉ chứa metadata.</span>
+                </div>
+            </article>
+        </div>
+
+        <div class="row g-4 result-details-row">
+            <div class="col-lg-8">
+                <article class="workspace-card">
+                    <div class="card-heading">
+                        <div>
+                            <span class="card-step">Thông tin</span>
+                            <h2>Chi tiết lượt phân tích</h2>
+                        </div>
+                    </div>
+                    <div class="result-info-grid">
+                        <div class="info-item">
+                            <span><i class="bi bi-cpu"></i> Mô hình sử dụng</span>
+                            <strong th:text="${result.modelType}">YOLO26m-VMamba-seg</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-tag"></i> Nhãn</span>
+                            <strong th:text="${result.label}">polyp</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-stopwatch"></i> Thời gian xử lý AI</span>
+                            <strong th:text="${#numbers.formatDecimal(result.processingTimeMs, 1, 1) + ' ms'}">118,6 ms</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-bounding-box-circles"></i> Số vùng mask</span>
+                            <strong th:text="${result.maskCount}">1</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-calendar3"></i> Thời gian thực hiện</span>
+                            <strong th:text="${#temporals.format(result.createdAt, 'HH:mm · dd/MM/yyyy')}">09:30 · 22/07/2026</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-aspect-ratio"></i> Kích thước ảnh</span>
+                            <strong th:text="${result.imageSize}">1280 × 720 px</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-database-check"></i> Trạng thái lịch sử</span>
+                            <strong th:text="${result.historySaved ? 'Đã lưu MongoDB' : 'Chưa lưu'}">Đã lưu MongoDB</strong>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            <div class="col-lg-4">
+                <article class="workspace-card confidence-card">
+                    <span class="card-step">Confidence</span>
+                    <div class="confidence-value">
+                        <strong th:text="${#numbers.formatDecimal(result.confidence, 1, 1)}">93,4</strong><span>%</span>
+                    </div>
+                    <div class="progress confidence-progress" role="progressbar"
+                         aria-label="Confidence cao nhất của các vùng polyp"
+                         th:attr="aria-valuenow=${result.confidence}"
+                         aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar"
+                             th:style="'width: ' + ${result.confidence} + '%'"></div>
+                    </div>
+                    <p>Confidence cao nhất trong các vùng polyp được phát hiện; không phải xác suất chẩn đoán bệnh.</p>
+                </article>
+            </div>
+        </div>
+
+        <div class="result-actions">
+            <a class="btn btn-primary" th:href="@{/diagnose}">
+                <i class="bi bi-plus-lg"></i> Phân tích ảnh khác
+            </a>
+            <a class="btn btn-outline-primary" th:href="@{/history}">
+                <i class="bi bi-clock-history"></i> Xem lịch sử
+            </a>
+            <a class="btn btn-outline-secondary"
+               th:href="@{/diagnoses/{id}/download/original(id=${result.id})}">
+                <i class="bi bi-download" aria-hidden="true"></i> Tải ảnh gốc
+            </a>
+            <a class="btn btn-outline-secondary"
+               th:href="@{/diagnoses/{id}/download/result(id=${result.id})}">
+                <i class="bi bi-download" aria-hidden="true"></i> Tải ảnh kết quả
+            </a>
+            <a class="btn btn-outline-secondary"
+               th:href="@{/diagnoses/{id}/metadata.json(id=${result.id})}">
+                <i class="bi bi-filetype-json" aria-hidden="true"></i> Tải metadata JSON
+            </a>
+            <a class="btn btn-outline-primary" th:if="${result.comparisonResult}"
+               th:href="@{/comparisons/{id}(id=${result.comparisonGroupId})}">
+                <i class="bi bi-columns-gap" aria-hidden="true"></i> Mở phiên so sánh
+            </a>
+            <form th:unless="${result.comparisonResult}"
+                  th:action="@{/history/{id}/delete(id=${result.id})}" method="post"
+                  data-delete-history-form>
+                <button class="btn btn-outline-danger" type="submit">
+                    <i class="bi bi-trash3" aria-hidden="true"></i> Xóa kết quả
+                </button>
+            </form>
+        </div>
+
+        <div class="research-alert" role="note">
+            <i class="bi bi-shield-exclamation"></i>
+            <div>
+                <strong>PolypVision phục vụ nghiên cứu và minh họa, không phải thiết bị y tế.</strong>
+                <span>Không thay thế chẩn đoán hoặc đánh giá của bác sĩ; confidence không phải xác suất mắc bệnh.</span>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

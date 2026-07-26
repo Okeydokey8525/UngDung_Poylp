@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main dashboard-main" tabindex="-1">
+    <section class="page-hero dashboard-hero">
+        <div class="container dashboard-hero-layout">
+            <div>
+                <span class="eyebrow"><i class="bi bi-speedometer2" aria-hidden="true"></i> Dashboard cá nhân</span>
+                <h1>Tổng quan hoạt động</h1>
+                <p>
+                    Xin chào <strong th:text="${dashboard.fullName}">Người dùng</strong>.
+                    Dưới đây là dữ liệu từ các kết quả đã lưu trong tài khoản của bạn.
+                </p>
+            </div>
+            <div class="dashboard-quick-actions" aria-label="Thao tác nhanh">
+                <a class="btn btn-primary" th:href="@{/diagnose}">
+                    <i class="bi bi-image" aria-hidden="true"></i> Phân tích ảnh
+                </a>
+                <a class="btn btn-outline-primary" th:href="@{/compare}">
+                    <i class="bi bi-layout-split" aria-hidden="true"></i> So sánh mô hình
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <div class="container dashboard-content">
+        <aside class="dashboard-disclaimer" aria-label="Lưu ý về ý nghĩa thống kê">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            <p>Các thống kê này phản ánh hoạt động sử dụng hệ thống và kết quả dự đoán đã lưu, không thay thế đánh giá thực nghiệm khoa học của mô hình.</p>
+        </aside>
+
+        <section class="dashboard-empty" th:if="${dashboard.empty}" aria-labelledby="emptyDashboardTitle">
+            <div class="dashboard-empty-icon"><i class="bi bi-bar-chart" aria-hidden="true"></i></div>
+            <div>
+                <h2 id="emptyDashboardTitle">Chưa có hoạt động để tổng hợp</h2>
+                <p>Hãy phân tích một ảnh hoặc chạy phiên so sánh đầu tiên. Dashboard sẽ tự cập nhật từ MongoDB.</p>
+            </div>
+            <a class="btn btn-primary" th:href="@{/diagnose}">Bắt đầu phân tích</a>
+        </section>
+
+        <section aria-labelledby="userKpiTitle">
+            <div class="dashboard-section-heading">
+                <div>
+                    <span>Chỉ số sử dụng</span>
+                    <h2 id="userKpiTitle">Hoạt động của tài khoản</h2>
+                </div>
+                <span class="dashboard-period"><i class="bi bi-database" aria-hidden="true"></i> Dữ liệu MongoDB</span>
+            </div>
+            <div class="dashboard-kpi-grid">
+                <article class="dashboard-kpi-card">
+                    <div class="dashboard-kpi-icon"><i class="bi bi-file-earmark-medical" aria-hidden="true"></i></div>
+                    <span>Phân tích đơn</span>
+                    <strong th:text="${#numbers.formatInteger(dashboard.singleAnalysis, 1, 'POINT')}">0</strong>
+                    <small>Số document không thuộc comparison</small>
+                </article>
+                <article class="dashboard-kpi-card">
+                    <div class="dashboard-kpi-icon teal"><i class="bi bi-layout-split" aria-hidden="true"></i></div>
+                    <span>Phiên so sánh</span>
+                    <strong th:text="${#numbers.formatInteger(dashboard.comparisonSessions, 1, 'POINT')}">0</strong>
+                    <small>Mỗi group đủ hai mô hình tính một phiên</small>
+                </article>
+                <article class="dashboard-kpi-card">
+                    <div class="dashboard-kpi-icon"><i class="bi bi-cpu" aria-hidden="true"></i></div>
+                    <span>Tổng lượt inference</span>
+                    <strong th:text="${#numbers.formatInteger(dashboard.totalInference, 1, 'POINT')}">0</strong>
+                    <small>Phân tích đơn cộng các kết quả comparison</small>
+                </article>
+                <article class="dashboard-kpi-card">
+                    <div class="dashboard-kpi-icon success"><i class="bi bi-bounding-box" aria-hidden="true"></i></div>
+                    <span>Có phát hiện</span>
+                    <strong th:text="${#numbers.formatInteger(dashboard.detected, 1, 'POINT')}">0</strong>
+                    <small th:text="${#numbers.formatDecimal(dashboard.detectedRate, 1, 1) + '% ảnh đã tải lên'}">0,0%</small>
+                </article>
+                <article class="dashboard-kpi-card">
+                    <div class="dashboard-kpi-icon muted"><i class="bi bi-bounding-box-circles" aria-hidden="true"></i></div>
+                    <span>Không phát hiện</span>
+                    <strong th:text="${#numbers.formatInteger(dashboard.notDetected, 1, 'POINT')}">0</strong>
+                    <small>Kết quả dự đoán đã lưu</small>
+                </article>
+                <article class="dashboard-kpi-card">
+                    <div class="dashboard-kpi-icon teal"><i class="bi bi-layers" aria-hidden="true"></i></div>
+                    <span>Tổng vùng mask</span>
+                    <strong th:text="${#numbers.formatInteger(dashboard.totalMasks, 1, 'POINT')}">0</strong>
+                    <small>Field thiếu được tính là 0</small>
+                </article>
+                <article class="dashboard-kpi-card">
+                    <div class="dashboard-kpi-icon"><i class="bi bi-stopwatch" aria-hidden="true"></i></div>
+                    <span>AI trung bình</span>
+                    <strong th:text="${#numbers.formatDecimal(dashboard.averageProcessingTimeMs, 1, 1)}">0,0</strong>
+                    <small>Milliseconds mỗi lượt inference</small>
+                </article>
+                <article class="dashboard-kpi-card">
+                    <div class="dashboard-kpi-icon success"><i class="bi bi-percent" aria-hidden="true"></i></div>
+                    <span>Confidence detected</span>
+                    <strong th:text="${#numbers.formatDecimal(dashboard.averageDetectedConfidence, 1, 1) + '%'}">0,0%</strong>
+                    <small>Chỉ trung bình các kết quả detected=true</small>
+                </article>
+                <article class="dashboard-kpi-card dashboard-kpi-wide">
+                    <div class="dashboard-kpi-icon"><i class="bi bi-stars" aria-hidden="true"></i></div>
+                    <span>Mô hình dùng nhiều nhất</span>
+                    <strong class="dashboard-kpi-text" th:text="${dashboard.mostUsedModel}">Chưa có dữ liệu</strong>
+                    <small>Phản ánh số lượt sử dụng, không phải chất lượng mô hình</small>
+                </article>
+            </div>
+        </section>
+
+        <section class="dashboard-chart-section" aria-labelledby="userChartTitle">
+            <div class="dashboard-section-heading">
+                <div>
+                    <span>Biểu đồ</span>
+                    <h2 id="userChartTitle">Phân bố hoạt động đã lưu</h2>
+                </div>
+            </div>
+            <div class="dashboard-chart-grid">
+                <article class="dashboard-chart-card dashboard-chart-wide" aria-labelledby="dailyUsageTitle">
+                    <div class="dashboard-card-heading">
+                        <div>
+                            <h3 id="dailyUsageTitle">Lượt inference trong 7 ngày</h3>
+                            <p>Mỗi cột là số document được tạo trong ngày.</p>
+                        </div>
+                        <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
+                    </div>
+                    <div class="daily-chart" role="img" aria-label="Biểu đồ cột số lượt inference trong 7 ngày">
+                        <div class="daily-chart-item" th:each="day : ${dashboard.dailyUsage}">
+                            <span class="daily-chart-value" th:text="${day.count}">0</span>
+                            <div class="daily-chart-track">
+                                <span class="daily-chart-bar"
+                                      th:style="'--chart-value:' + ${day.percentage} + '%'"></span>
+                            </div>
+                            <span class="daily-chart-label" th:text="${day.label}">20/07</span>
+                        </div>
+                    </div>
+                    <table class="visually-hidden">
+                        <caption>Dữ liệu lượt inference theo ngày</caption>
+                        <thead><tr><th>Ngày</th><th>Số lượt</th></tr></thead>
+                        <tbody>
+                        <tr th:each="day : ${dashboard.dailyUsage}">
+                            <th scope="row" th:text="${day.label}">20/07</th>
+                            <td th:text="${day.count}">0</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </article>
+
+                <article class="dashboard-chart-card" aria-labelledby="modelUsageTitle">
+                    <div class="dashboard-card-heading">
+                        <div>
+                            <h3 id="modelUsageTitle">Phân bố mô hình</h3>
+                            <p>Số lượt mỗi checkpoint được chọn.</p>
+                        </div>
+                        <i class="bi bi-diagram-3" aria-hidden="true"></i>
+                    </div>
+                    <div class="distribution-chart" role="img" aria-label="Biểu đồ phân bố sử dụng hai mô hình">
+                        <div class="distribution-row">
+                            <div><span class="chart-key baseline"></span><span>YOLO26n-seg</span><strong th:text="${dashboard.baselineUsage}">0</strong></div>
+                            <div class="distribution-track"><span class="distribution-fill baseline"
+                                  th:style="'--chart-value:' + ${dashboard.baselineRate} + '%'"></span></div>
+                        </div>
+                        <div class="distribution-row">
+                            <div><span class="chart-key vmamba"></span><span>YOLO26n-VMamba-seg</span><strong th:text="${dashboard.vmambaUsage}">0</strong></div>
+                            <div class="distribution-track"><span class="distribution-fill vmamba"
+                                  th:style="'--chart-value:' + ${dashboard.vmambaRate} + '%'"></span></div>
+                        </div>
+                    </div>
+                    <table class="visually-hidden">
+                        <caption>Dữ liệu sử dụng theo mô hình</caption>
+                        <tbody>
+                        <tr><th scope="row">YOLO26n-seg</th><td th:text="${dashboard.baselineUsage}">0</td></tr>
+                        <tr><th scope="row">YOLO26n-VMamba-seg</th><td th:text="${dashboard.vmambaUsage}">0</td></tr>
+                        </tbody>
+                    </table>
+                </article>
+
+                <article class="dashboard-chart-card" aria-labelledby="detectionUsageTitle">
+                    <div class="dashboard-card-heading">
+                        <div>
+                            <h3 id="detectionUsageTitle">Phân bố kết quả</h3>
+                            <p>Đây là tỷ lệ dự đoán trên ảnh đã tải lên.</p>
+                        </div>
+                        <i class="bi bi-pie-chart" aria-hidden="true"></i>
+                    </div>
+                    <div class="result-distribution" role="img"
+                         th:attr="aria-label=${'Có phát hiện ' + dashboard.detected + ', không phát hiện ' + dashboard.notDetected}">
+                        <div class="result-total">
+                            <strong th:text="${#numbers.formatInteger(dashboard.totalInference, 1, 'POINT')}">0</strong>
+                            <span>lượt inference</span>
+                        </div>
+                        <div class="result-legend">
+                            <div><span class="chart-key detected"></span><span>Có phát hiện</span><strong th:text="${dashboard.detected}">0</strong></div>
+                            <div><span class="chart-key clear"></span><span>Không phát hiện</span><strong th:text="${dashboard.notDetected}">0</strong></div>
+                        </div>
+                    </div>
+                    <table class="visually-hidden">
+                        <caption>Dữ liệu phân bố kết quả dự đoán</caption>
+                        <tbody>
+                        <tr><th scope="row">Có phát hiện</th><td th:text="${dashboard.detected}">0</td></tr>
+                        <tr><th scope="row">Không phát hiện</th><td th:text="${dashboard.notDetected}">0</td></tr>
+                        </tbody>
+                    </table>
+                </article>
+            </div>
+        </section>
+
+        <section aria-labelledby="recentActivityTitle">
+            <div class="dashboard-section-heading">
+                <div>
+                    <span>Gần đây</span>
+                    <h2 id="recentActivityTitle">Hoạt động mới nhất</h2>
+                </div>
+                <a th:href="@{/history}">Xem toàn bộ lịch sử <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            </div>
+            <div class="dashboard-activity-list" th:if="${!#lists.isEmpty(dashboard.recentActivities)}">
+                <article class="dashboard-activity-card" th:each="activity : ${dashboard.recentActivities}">
+                    <a class="dashboard-activity-thumbnail" th:href="${activity.detailUrl}"
+                       th:aria-label="${'Xem ' + activity.activityType + ' ' + activity.fileName}">
+                        <img th:src="${activity.thumbnailUrl}" th:alt="${'Ảnh gốc ' + activity.fileName}">
+                    </a>
+                    <div class="dashboard-activity-body">
+                        <div class="dashboard-activity-heading">
+                            <div>
+                                <span th:text="${activity.activityType}">Phân tích đơn</span>
+                                <h3 th:text="${activity.fileName}">sample.jpg</h3>
+                            </div>
+                            <time th:if="${activity.createdAt != null}"
+                                  th:text="${#temporals.format(activity.createdAt, 'HH:mm · dd/MM/yyyy')}">
+                                09:30 · 26/07/2026
+                            </time>
+                        </div>
+                        <div class="dashboard-activity-meta">
+                            <span><i class="bi bi-cpu" aria-hidden="true"></i><span th:text="${activity.modelLabel}">YOLO26n-seg</span></span>
+                            <span class="activity-family" th:text="${activity.familyLabel}">Baseline</span>
+                            <span th:classappend="${activity.detected ? ' detected' : ' clear'}">
+                                <i class="bi" th:classappend="${activity.detected ? 'bi-check2-circle' : 'bi-dash-circle'}"
+                                   aria-hidden="true"></i>
+                                <span th:text="${activity.detected ? 'Có phát hiện' : 'Không phát hiện'}">Có phát hiện</span>
+                            </span>
+                            <span th:text="${#numbers.formatDecimal(activity.confidence, 1, 1) + '% confidence'}">90,0%</span>
+                            <span th:text="${#numbers.formatDecimal(activity.processingTimeMs, 1, 1) + ' ms'}">120,0 ms</span>
+                        </div>
+                        <a class="dashboard-activity-link" th:href="${activity.detailUrl}">
+                            Xem chi tiết <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </article>
+            </div>
+            <div class="dashboard-list-empty" th:if="${#lists.isEmpty(dashboard.recentActivities)}">
+                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                <p>Chưa có hoạt động gần đây.</p>
+            </div>
+        </section>
+
+        <section class="dashboard-cta" aria-labelledby="dashboardCtaTitle">
+            <div>
+                <span>Tiếp tục nghiên cứu</span>
+                <h2 id="dashboardCtaTitle">Chọn luồng làm việc tiếp theo</h2>
+            </div>
+            <div>
+                <a class="btn btn-primary" th:href="@{/diagnose}">Phân tích ảnh</a>
+                <a class="btn btn-outline-primary" th:href="@{/compare}">So sánh mô hình</a>
+                <a class="btn btn-outline-primary" th:href="@{/history}">Lịch sử phân tích</a>
+                <a class="btn btn-outline-primary" th:href="@{/comparisons}">Lịch sử so sánh</a>
+            </div>
+        </section>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

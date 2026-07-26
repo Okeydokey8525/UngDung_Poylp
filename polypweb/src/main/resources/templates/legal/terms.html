@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+<main id="main-content" class="page-main legal-page" tabindex="-1">
+    <section class="legal-hero">
+        <div class="container">
+            <span class="eyebrow">PolypVision Research</span>
+            <h1>Điều khoản sử dụng</h1>
+            <p>Các điều khoản này áp dụng cho việc sử dụng giao diện nghiên cứu và minh họa PolypVision.</p>
+        </div>
+    </section>
+    <section class="container legal-content">
+        <article>
+            <h2>Mục đích sử dụng</h2>
+            <p>PolypVision phục vụ nghiên cứu và minh họa kỹ thuật phân đoạn polyp. Kết quả không được dùng thay
+                cho bác sĩ, chẩn đoán, tư vấn hoặc quyết định điều trị.</p>
+        </article>
+        <article>
+            <h2>Trách nhiệm với tệp tải lên</h2>
+            <p>Người dùng chịu trách nhiệm bảo đảm có quyền xử lý các tệp mình tải lên. Không được tải nội dung
+                trái pháp luật, xâm phạm quyền riêng tư, chứa mã độc hoặc gây gián đoạn hệ thống.</p>
+        </article>
+        <article>
+            <h2>Không bảo đảm chẩn đoán</h2>
+            <p>Hệ thống và mô hình có thể tạo kết quả thiếu chính xác, bỏ sót hoặc phát hiện nhầm. Không có bảo đảm
+                rằng kết quả phù hợp cho mục đích lâm sàng hay một tình huống cụ thể.</p>
+        </article>
+        <article>
+            <h2>Giới hạn trách nhiệm và quản lý tài khoản</h2>
+            <p>Trong phạm vi phù hợp với môi trường nghiên cứu, đơn vị vận hành không chịu trách nhiệm cho quyết
+                định y tế dựa trên kết quả. Tài khoản có thể bị khóa khi lạm dụng hoặc vi phạm các điều khoản này.</p>
+        </article>
+        <article>
+            <h2>Thay đổi dịch vụ và liên hệ</h2>
+            <p>Tính năng, mô hình hoặc điều khoản có thể được cập nhật khi nghiên cứu thay đổi. Các câu hỏi về phiên
+                triển khai cần được gửi tới quản trị viên hệ thống.</p>
+        </article>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>
