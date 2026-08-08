@@ -2257,6 +2257,12 @@ a:focus-visible {
     padding-right: 3rem;
 }
 
+.password-control .form-control.is-invalid,
+.auth-form.was-validated .password-control .form-control:invalid {
+    padding-right: 5rem;
+    background-position: right 2.85rem center;
+}
+
 .password-toggle {
     position: absolute;
     z-index: 3;
@@ -2284,9 +2290,19 @@ a:focus-visible {
     font-size: 0.86rem;
 }
 
-.auth-form.was-validated .input-with-icon:has(.form-control:invalid) + .invalid-feedback,
+.auth-form .input-with-icon:has(.form-control.is-invalid) ~ .invalid-feedback,
+.auth-form .form-check:has(.form-check-input.is-invalid) .invalid-feedback,
+.auth-form.was-validated .input-with-icon:has(.form-control:invalid) ~ .invalid-feedback,
 .auth-form.was-validated .form-check:has(.form-check-input:invalid) .invalid-feedback {
     display: block;
+}
+
+.auth-form .invalid-feedback {
+    margin-top: 0.35rem;
+}
+
+.auth-form .form-text + .invalid-feedback {
+    margin-top: 0.25rem;
 }
 
 .auth-switch {

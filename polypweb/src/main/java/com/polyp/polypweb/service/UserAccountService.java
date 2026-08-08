@@ -7,6 +7,7 @@ import com.polyp.polypweb.dto.ProfileUpdateForm;
 import com.polyp.polypweb.dto.RegisterForm;
 import com.polyp.polypweb.exception.AccountOperationException;
 import com.polyp.polypweb.exception.DuplicateEmailException;
+import com.polyp.polypweb.exception.PasswordOperationException;
 import com.polyp.polypweb.repository.UserAccountRepository;
 import com.polyp.polypweb.view.UserAccountView;
 import org.springframework.dao.DuplicateKeyException;
@@ -84,7 +85,7 @@ public class UserAccountService {
                 .toList();
     }
 
-    public void updateProfile(String userId, ProfileUpdateForm form) {
+    public UserAccount updateProfile(String userId, ProfileUpdateForm form) {
         UserAccount account = findById(userId);
         String normalizedEmail = normalizeEmail(form.getEmail());
         repository.findByEmailIgnoreCase(normalizedEmail)
@@ -96,7 +97,7 @@ public class UserAccountService {
         account.setEmail(normalizedEmail);
         account.setUpdatedAt(LocalDateTime.now());
         try {
-            repository.save(account);
+            return repository.save(account);
         } catch (DuplicateKeyException exception) {
             throw new DuplicateEmailException();
         }
@@ -105,7 +106,10 @@ public class UserAccountService {
     public void changePassword(String userId, ChangePasswordForm form) {
         UserAccount account = findById(userId);
         if (!passwordEncoder.matches(form.getCurrentPassword(), account.getPasswordHash())) {
-            throw new AccountOperationException("Mật khẩu hiện tại không đúng.");
+            throw new PasswordOperationException(
+                    "CURRENT_PASSWORD_INCORRECT",
+                    "Mật khẩu hiện tại không đúng."
+            );
         }
         if (form.getNewPassword() == null
                 || !form.getNewPassword().equals(form.getConfirmNewPassword())) {
@@ -113,7 +117,10 @@ public class UserAccountService {
         }
         validatePassword(form.getNewPassword());
         if (passwordEncoder.matches(form.getNewPassword(), account.getPasswordHash())) {
-            throw new AccountOperationException("Mật khẩu mới phải khác mật khẩu hiện tại.");
+            throw new PasswordOperationException(
+                    "PASSWORD_REUSE_NOT_ALLOWED",
+                    "Mật khẩu mới phải khác mật khẩu hiện tại."
+            );
         }
         account.setPasswordHash(passwordEncoder.encode(form.getNewPassword()));
         account.setUpdatedAt(LocalDateTime.now());

@@ -252,6 +252,10 @@ public class DashboardService {
                 .mapToDouble(DiagnosisHistory::getProcessingTimeMs)
                 .filter(value -> value >= 0)
                 .sum();
+        int maskCount = group.stream()
+                .mapToInt(DiagnosisHistory::getMaskCount)
+                .filter(value -> value >= 0)
+                .sum();
         LocalDateTime createdAt = group.stream()
                 .map(DiagnosisHistory::getCreatedAt)
                 .filter(value -> value != null)
@@ -265,6 +269,8 @@ public class DashboardService {
                 : null;
 
         return new RecentActivityView(
+                first.getId(),
+                comparison ? first.getComparisonGroupId() : null,
                 first.getFileName(),
                 models.isEmpty() ? "Không xác định" : String.join(" + ", models),
                 familyLabel(models),
@@ -276,7 +282,8 @@ public class DashboardService {
                 detailUrl,
                 thumbnailUrl,
                 userDisplays.getOrDefault(first.getUserId(), "Tài khoản không xác định"),
-                group.size()
+                group.size(),
+                maskCount
         );
     }
 

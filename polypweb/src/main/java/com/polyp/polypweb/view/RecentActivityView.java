@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 public class RecentActivityView {
 
+    private final String id;
+    private final String comparisonGroupId;
     private final String fileName;
     private final String modelLabel;
     private final String familyLabel;
@@ -16,8 +18,11 @@ public class RecentActivityView {
     private final String thumbnailUrl;
     private final String userDisplay;
     private final int inferenceCount;
+    private final int maskCount;
 
     public RecentActivityView(
+            String id,
+            String comparisonGroupId,
             String fileName,
             String modelLabel,
             String familyLabel,
@@ -29,7 +34,10 @@ public class RecentActivityView {
             String detailUrl,
             String thumbnailUrl,
             String userDisplay,
-            int inferenceCount) {
+            int inferenceCount,
+            int maskCount) {
+        this.id = id;
+        this.comparisonGroupId = comparisonGroupId;
         this.fileName = fileName;
         this.modelLabel = modelLabel;
         this.familyLabel = familyLabel;
@@ -42,6 +50,15 @@ public class RecentActivityView {
         this.thumbnailUrl = thumbnailUrl;
         this.userDisplay = userDisplay;
         this.inferenceCount = inferenceCount;
+        this.maskCount = maskCount;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getComparisonGroupId() {
+        return comparisonGroupId;
     }
 
     public String getFileName() {
@@ -90,5 +107,9 @@ public class RecentActivityView {
 
     public int getInferenceCount() {
         return inferenceCount;
+    }
+
+    public int getMaskCount() {
+        return maskCount;
     }
 }

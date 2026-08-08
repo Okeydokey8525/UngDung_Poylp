@@ -28,10 +28,14 @@ public class ComparisonHistoryFilter {
     private ComparisonSortOption sortOption = ComparisonSortOption.NEWEST;
     private LocalDate parsedDateFrom;
     private LocalDate parsedDateTo;
+    private boolean invalidDateFormat;
+    private boolean invalidDateRange;
     private final List<String> validationMessages = new ArrayList<>();
 
     public ComparisonHistoryFilter normalize() {
         validationMessages.clear();
+        invalidDateFormat = false;
+        invalidDateRange = false;
         keyword = keyword == null ? "" : keyword.trim();
         if (keyword.length() > MAX_KEYWORD_LENGTH) {
             keyword = keyword.substring(0, MAX_KEYWORD_LENGTH);
@@ -64,6 +68,7 @@ public class ComparisonHistoryFilter {
                 && parsedDateTo != null
                 && parsedDateFrom.isAfter(parsedDateTo)) {
             validationMessages.add("Ngày bắt đầu không được sau ngày kết thúc.");
+            invalidDateRange = true;
             parsedDateFrom = null;
             parsedDateTo = null;
         }
@@ -94,6 +99,7 @@ public class ComparisonHistoryFilter {
         try {
             return LocalDate.parse(value.trim());
         } catch (DateTimeParseException exception) {
+            invalidDateFormat = true;
             validationMessages.add(label + " phải có định dạng yyyy-MM-dd.");
             return null;
         }
@@ -185,5 +191,13 @@ public class ComparisonHistoryFilter {
 
     public List<String> getValidationMessages() {
         return List.copyOf(validationMessages);
+    }
+
+    public boolean hasInvalidDateFormat() {
+        return invalidDateFormat;
+    }
+
+    public boolean hasInvalidDateRange() {
+        return invalidDateRange;
     }
 }

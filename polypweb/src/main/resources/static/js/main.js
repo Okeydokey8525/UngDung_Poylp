@@ -109,18 +109,102 @@ function setupComparisonDeletes() {
     });
 }
 
+function setupRegisterValidation(form) {
+    const fields = Array.from(form.querySelectorAll("input[aria-describedby]"));
+    const password = form.querySelector("#password");
+    const confirmation = form.querySelector("#confirmPassword");
+
+    const syncBlankValue = (field) => {
+        if (field === confirmation || field.type === "checkbox") return;
+        const whitespaceOnly = field.value.length > 0 && field.value.trim().length === 0;
+        field.setCustomValidity(whitespaceOnly ? field.dataset.requiredMessage : "");
+    };
+
+    const syncPasswordConfirmation = () => {
+        if (!password || !confirmation) return;
+        if (confirmation.value.length > 0 && confirmation.value.trim().length === 0) {
+            confirmation.setCustomValidity(confirmation.dataset.requiredMessage);
+            return;
+        }
+        const mismatch = confirmation.value.length > 0 && password.value !== confirmation.value;
+        confirmation.setCustomValidity(mismatch ? confirmation.dataset.mismatchMessage : "");
+    };
+
+    const feedbackFor = (field) => field.getAttribute("aria-describedby")
+        ?.split(/\s+/)
+        .map((id) => document.getElementById(id))
+        .find((element) => element?.classList.contains("invalid-feedback"));
+
+    const validationMessageFor = (field) => {
+        if (field.validity.valueMissing) return field.dataset.requiredMessage;
+        if (field.validity.typeMismatch) return field.dataset.typeMessage;
+        if (field.validity.tooShort || field.validity.tooLong) {
+            return field.dataset.lengthMessage || field.dataset.patternMessage;
+        }
+        if (field.validity.patternMismatch) return field.dataset.patternMessage;
+        if (field.validity.customError) {
+            return field.validationMessage;
+        }
+        return "Giá trị chưa hợp lệ.";
+    };
+
+    const renderFieldValidity = (field, force = false) => {
+        const hadServerError = field.classList.contains("is-invalid");
+        if (!force && field.dataset.validationTouched !== "true" && !hadServerError) return;
+
+        syncBlankValue(field);
+        const invalid = !field.checkValidity();
+        field.classList.toggle("is-invalid", invalid);
+        field.setAttribute("aria-invalid", invalid.toString());
+        if (invalid) {
+            const feedback = feedbackFor(field);
+            if (feedback) feedback.textContent = validationMessageFor(field);
+        }
+    };
+
+    const renderPasswordPair = (force = false) => {
+        syncPasswordConfirmation();
+        if (password) renderFieldValidity(password, force);
+        if (confirmation) renderFieldValidity(confirmation, force);
+    };
+
+    fields.forEach((field) => {
+        field.addEventListener("blur", () => {
+            field.dataset.validationTouched = "true";
+            if (field === password || field === confirmation) {
+                renderPasswordPair(false);
+            } else {
+                renderFieldValidity(field, true);
+            }
+        });
+
+        const eventName = field.type === "checkbox" ? "change" : "input";
+        field.addEventListener(eventName, () => {
+            if (field === password || field === confirmation) {
+                renderPasswordPair(false);
+            } else {
+                renderFieldValidity(field, false);
+            }
+        });
+    });
+
+    return () => {
+        syncPasswordConfirmation();
+        fields.forEach((field) => {
+            field.dataset.validationTouched = "true";
+            renderFieldValidity(field, true);
+        });
+    };
+}
+
 function setupAuthForms() {
     document.querySelectorAll("[data-auth-form]").forEach((form) => {
+        const validateRegister = form.hasAttribute("data-register-form")
+            ? setupRegisterValidation(form)
+            : null;
+
         form.addEventListener("submit", (event) => {
-            if (form.hasAttribute("data-register-form")) {
-                const password = form.querySelector("#password");
-                const confirmation = form.querySelector("#confirmPassword");
-                if (password && confirmation) {
-                    confirmation.setCustomValidity(
-                        password.value === confirmation.value ? "" : "Mật khẩu xác nhận chưa khớp."
-                    );
-                }
-            }
+            validateRegister?.();
 
             form.classList.add("was-validated");
 
@@ -157,6 +241,7 @@ function setupPasswordToggles() {
             const isPassword = input.type === "password";
             input.type = isPassword ? "text" : "password";
             button.setAttribute("aria-label", isPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu");
+            button.setAttribute("aria-pressed", isPassword.toString());
             const icon = button.querySelector("i");
             if (icon) {
                 icon.className = isPassword ? "bi bi-eye-slash" : "bi bi-eye";

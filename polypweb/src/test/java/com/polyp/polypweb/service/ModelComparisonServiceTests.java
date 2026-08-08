@@ -269,6 +269,166 @@ class ModelComparisonServiceTests {
         verify(storageService).deleteQuietly("/media/results/vmamba.jpg");
     }
 
+    @Test
+    void baselineModelUnavailableHasStableCodeAndRollsBackOriginal() {
+        prepareComparisonDefaults();
+        when(aiInferenceClient.predict(image, ModelComparisonService.BASELINE_MODEL))
+                .thenThrow(new AiServiceException("MODEL_UNAVAILABLE", "offline"));
+
+        ModelComparisonException exception = assertThrows(
+                ModelComparisonException.class,
+                () -> service.compare(image, USER_ID)
+        );
+
+        assertEquals("BASELINE_MODEL_UNAVAILABLE", exception.getCode());
+        assertEquals(503, exception.getStatus().value());
+        verify(storageService).deleteQuietly("/media/original/shared.jpg");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void vmambaTimeoutHasStableCodeAndRollsBackBaselineOverlay() {
+        prepareComparisonDefaults();
+        when(aiInferenceClient.predict(image, ModelComparisonService.BASELINE_MODEL))
+                .thenReturn(prediction(ModelComparisonService.BASELINE_MODEL, true, 0.6, 1, 100));
+        when(storageService.storeComparisonResult(eq("baseline-base64"), any(UUID.class), eq("baseline")))
+                .thenReturn("/media/results/baseline.jpg");
+        when(aiInferenceClient.predict(image, ModelComparisonService.VMAMBA_MODEL))
+                .thenThrow(new AiServiceException("AI_SERVICE_TIMEOUT", "timeout"));
+
+        ModelComparisonException exception = assertThrows(
+                ModelComparisonException.class,
+                () -> service.compare(image, USER_ID)
+        );
+
+        assertEquals("VMAMBA_TIMEOUT", exception.getCode());
+        assertEquals(504, exception.getStatus().value());
+        verify(storageService).deleteQuietly("/media/results/baseline.jpg");
+        verify(storageService).deleteQuietly("/media/original/shared.jpg");
+    }
+
+    @Test
+    void modelResponseMismatchIsBlockedAndRolledBack() {
+        prepareComparisonDefaults();
+        when(aiInferenceClient.predict(image, ModelComparisonService.BASELINE_MODEL))
+                .thenThrow(new AiServiceException("MODEL_RESPONSE_MISMATCH", "wrong"));
+
+        ModelComparisonException exception = assertThrows(
+                ModelComparisonException.class,
+                () -> service.compare(image, USER_ID)
+        );
+
+        assertEquals("MODEL_RESPONSE_MISMATCH", exception.getCode());
+        assertEquals(502, exception.getStatus().value());
+        verify(storageService).deleteQuietly("/media/original/shared.jpg");
+    }
+
+    @Test
+    void baselineOverlayStorageFailureRollsBackOriginal() {
+        prepareComparisonDefaults();
+        when(aiInferenceClient.predict(image, ModelComparisonService.BASELINE_MODEL))
+                .thenReturn(prediction(ModelComparisonService.BASELINE_MODEL, true, 0.6, 1, 100));
+        when(storageService.storeComparisonResult(eq("baseline-base64"), any(UUID.class), eq("baseline")))
+                .thenThrow(new StorageException("disk full"));
+
+        ModelComparisonException exception = assertThrows(
+                ModelComparisonException.class,
+                () -> service.compare(image, USER_ID)
+        );
+
+        assertEquals("STORAGE_FAILURE", exception.getCode());
+        verify(storageService).deleteQuietly("/media/original/shared.jpg");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void vmambaOverlayStorageFailureRollsBackOriginalAndBaseline() {
+        prepareComparisonDefaults();
+        when(aiInferenceClient.predict(image, ModelComparisonService.BASELINE_MODEL))
+                .thenReturn(prediction(ModelComparisonService.BASELINE_MODEL, true, 0.6, 1, 100));
+        when(aiInferenceClient.predict(image, ModelComparisonService.VMAMBA_MODEL))
+                .thenReturn(prediction(ModelComparisonService.VMAMBA_MODEL, true, 0.7, 1, 120));
+        when(storageService.storeComparisonResult(eq("baseline-base64"), any(UUID.class), eq("baseline")))
+                .thenReturn("/media/results/baseline.jpg");
+        when(storageService.storeComparisonResult(eq("vmamba-base64"), any(UUID.class), eq("vmamba")))
+                .thenThrow(new StorageException("disk full"));
+
+        assertThrows(ModelComparisonException.class, () -> service.compare(image, USER_ID));
+
+        verify(storageService).deleteQuietly("/media/results/baseline.jpg");
+        verify(storageService).deleteQuietly("/media/original/shared.jpg");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void firstDocumentSaveFailureRollsBackEveryFile() {
+        prepareSuccessfulInferenceAndStorage();
+        when(repository.save(any(DiagnosisHistory.class)))
+                .thenThrow(new RuntimeException("mongo offline"));
+
+        ModelComparisonException exception = assertThrows(
+                ModelComparisonException.class,
+                () -> service.compare(image, USER_ID)
+        );
+
+        assertEquals("COMPARISON_SAVE_FAILED", exception.getCode());
+        verify(storageService).deleteQuietly("/media/results/vmamba.jpg");
+        verify(storageService).deleteQuietly("/media/results/baseline.jpg");
+        verify(storageService).deleteQuietly("/media/original/shared.jpg");
+    }
+
+    @Test
+    void requireGroupRejectsMissingVmamba() {
+        String groupId = UUID.randomUUID().toString();
+        when(repository.findAllByComparisonGroupIdAndUserIdOrderByCreatedAtAsc(groupId, USER_ID))
+                .thenReturn(List.of(history(ModelComparisonService.BASELINE_MODEL, groupId)));
+
+        ModelComparisonException exception = assertThrows(
+                ModelComparisonException.class,
+                () -> service.requireForUser(groupId, USER_ID, false)
+        );
+
+        assertEquals("INCOMPLETE_COMPARISON", exception.getCode());
+        assertEquals(409, exception.getStatus().value());
+    }
+
+    @Test
+    void requireGroupRejectsDifferentOriginalImages() {
+        String groupId = UUID.randomUUID().toString();
+        DiagnosisHistory baseline = history(ModelComparisonService.BASELINE_MODEL, groupId);
+        DiagnosisHistory vmamba = history(ModelComparisonService.VMAMBA_MODEL, groupId);
+        vmamba.setOriginalImageUrl("/media/original/other.jpg");
+        when(repository.findAllByComparisonGroupIdAndUserIdOrderByCreatedAtAsc(groupId, USER_ID))
+                .thenReturn(List.of(baseline, vmamba));
+
+        ModelComparisonException exception = assertThrows(
+                ModelComparisonException.class,
+                () -> service.requireForUser(groupId, USER_ID, false)
+        );
+
+        assertEquals("INCOMPLETE_COMPARISON", exception.getCode());
+    }
+
+    @Test
+    void unavailableHealthIdentifiesVmambaModel() {
+        when(image.isEmpty()).thenReturn(false);
+        when(image.getSize()).thenReturn(1024L);
+        when(image.getContentType()).thenReturn("image/jpeg");
+        when(image.getOriginalFilename()).thenReturn("same-image.jpg");
+        org.mockito.Mockito.doThrow(new AiServiceException(
+                        "MODEL_UNAVAILABLE",
+                        ModelComparisonService.VMAMBA_MODEL + " unavailable"))
+                .when(aiInferenceClient).requireModelsAvailable(anyList());
+
+        ModelComparisonException exception = assertThrows(
+                ModelComparisonException.class,
+                () -> service.compare(image, USER_ID)
+        );
+
+        assertEquals("VMAMBA_MODEL_UNAVAILABLE", exception.getCode());
+        verify(storageService, never()).storeOriginal(any(), any());
+    }
+
     private AiPredictionResponse prediction(
             String model,
             boolean detected,
@@ -293,8 +453,24 @@ class ModelComparisonServiceTests {
     }
 
     private void prepareComparisonDefaults() {
+        when(image.isEmpty()).thenReturn(false);
+        when(image.getSize()).thenReturn(1024L);
+        when(image.getContentType()).thenReturn("image/jpeg");
+        when(image.getOriginalFilename()).thenReturn("same-image.jpg");
         when(storageService.storeOriginal(eq(image), any(UUID.class)))
                 .thenReturn("/media/original/shared.jpg");
+    }
+
+    private void prepareSuccessfulInferenceAndStorage() {
+        prepareComparisonDefaults();
+        when(aiInferenceClient.predict(image, ModelComparisonService.BASELINE_MODEL))
+                .thenReturn(prediction(ModelComparisonService.BASELINE_MODEL, true, 0.6, 1, 100));
+        when(aiInferenceClient.predict(image, ModelComparisonService.VMAMBA_MODEL))
+                .thenReturn(prediction(ModelComparisonService.VMAMBA_MODEL, true, 0.7, 1, 120));
+        when(storageService.storeComparisonResult(eq("baseline-base64"), any(UUID.class), eq("baseline")))
+                .thenReturn("/media/results/baseline.jpg");
+        when(storageService.storeComparisonResult(eq("vmamba-base64"), any(UUID.class), eq("vmamba")))
+                .thenReturn("/media/results/vmamba.jpg");
     }
 
     private DiagnosisHistory history(String model, String groupId) {

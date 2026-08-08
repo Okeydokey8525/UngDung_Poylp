@@ -28,10 +28,14 @@ public class HistoryFilter {
     private HistorySortOption sortOption = HistorySortOption.NEWEST;
     private LocalDate parsedDateFrom;
     private LocalDate parsedDateTo;
+    private boolean invalidDateFormat;
+    private boolean invalidDateRange;
     private final List<String> validationMessages = new ArrayList<>();
 
     public HistoryFilter normalize() {
         validationMessages.clear();
+        invalidDateFormat = false;
+        invalidDateRange = false;
         keyword = keyword == null ? "" : keyword.trim();
         if (keyword.length() > MAX_KEYWORD_LENGTH) {
             keyword = keyword.substring(0, MAX_KEYWORD_LENGTH);
@@ -65,6 +69,7 @@ public class HistoryFilter {
                 && parsedDateTo != null
                 && parsedDateFrom.isAfter(parsedDateTo)) {
             validationMessages.add("Ngày bắt đầu không được sau ngày kết thúc.");
+            invalidDateRange = true;
             parsedDateFrom = null;
             parsedDateTo = null;
         }
@@ -95,6 +100,7 @@ public class HistoryFilter {
         try {
             return LocalDate.parse(value.trim());
         } catch (DateTimeParseException exception) {
+            invalidDateFormat = true;
             validationMessages.add(label + " phải có định dạng yyyy-MM-dd.");
             return null;
         }
@@ -186,5 +192,13 @@ public class HistoryFilter {
 
     public List<String> getValidationMessages() {
         return List.copyOf(validationMessages);
+    }
+
+    public boolean hasInvalidDateFormat() {
+        return invalidDateFormat;
+    }
+
+    public boolean hasInvalidDateRange() {
+        return invalidDateRange;
     }
 }

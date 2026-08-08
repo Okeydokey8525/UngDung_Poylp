@@ -95,7 +95,7 @@ public class DiagnosisHistoryService {
         return true;
     }
 
-    DiagnosisResultView toView(DiagnosisHistory history) {
+    public DiagnosisResultView toView(DiagnosisHistory history) {
         return new DiagnosisResultView(
                 history.getId(),
                 "/diagnoses/" + history.getId() + "/original-image",

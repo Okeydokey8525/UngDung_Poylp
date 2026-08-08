@@ -56,6 +56,7 @@ public class AiInferenceClient {
                     || !modelHealth.isLoaded()
                     || !"ready".equalsIgnoreCase(modelHealth.getStatus())) {
                 throw new AiServiceException(
+                        "MODEL_UNAVAILABLE",
                         modelType + " hiện không khả dụng; phiên so sánh chưa được thực hiện."
                 );
             }
@@ -105,13 +106,19 @@ public class AiInferenceClient {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         } catch (HttpConnectTimeoutException exception) {
             throw new AiServiceException(
+                    "AI_SERVICE_UNAVAILABLE",
                     "Không thể kết nối FastAPI tại cổng 8000. Hãy kiểm tra dịch vụ Python đang chạy.",
                     exception
             );
         } catch (HttpTimeoutException exception) {
-            throw new AiServiceException("FastAPI phản hồi quá thời gian chờ. Vui lòng thử lại.", exception);
+            throw new AiServiceException(
+                    "AI_SERVICE_TIMEOUT",
+                    "FastAPI phản hồi quá thời gian chờ. Vui lòng thử lại.",
+                    exception
+            );
         } catch (ConnectException exception) {
             throw new AiServiceException(
+                    "AI_SERVICE_UNAVAILABLE",
                     "Không thể kết nối FastAPI tại cổng 8000. Hãy kiểm tra dịch vụ Python đang chạy.",
                     exception
             );
@@ -123,7 +130,11 @@ public class AiInferenceClient {
         }
 
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            String code = response.statusCode() == 503
+                    ? "MODEL_UNAVAILABLE"
+                    : "AI_SERVICE_UNAVAILABLE";
             throw new AiServiceException(
+                    code,
                     "FastAPI từ chối yêu cầu với mã HTTP " + response.statusCode() + "."
             );
         }
@@ -136,6 +147,7 @@ public class AiInferenceClient {
             if (prediction.getModelType() == null
                     || !prediction.getModelType().equalsIgnoreCase(modelType)) {
                 throw new AiServiceException(
+                        "MODEL_RESPONSE_MISMATCH",
                         "FastAPI trả về kết quả từ mô hình khác với mô hình đã chọn."
                 );
             }

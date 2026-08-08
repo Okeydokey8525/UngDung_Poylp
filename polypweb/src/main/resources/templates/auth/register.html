@@ -36,9 +36,19 @@
                             <i class="bi bi-person" aria-hidden="true"></i>
                             <input class="form-control" type="text" id="fullName" th:field="*{fullName}"
                                    placeholder="Nguyễn Văn A" autocomplete="name" minlength="2" maxlength="100"
-                                   th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''" required>
+                                   th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''"
+                                   th:attr="aria-invalid=${#fields.hasErrors('fullName')}"
+                                   aria-describedby="fullNameError"
+                                   data-required-message="Vui lòng nhập họ và tên."
+                                   data-length-message="Họ và tên phải có từ 2 đến 100 ký tự."
+                                   required>
                         </div>
-                        <div class="invalid-feedback" th:errors="*{fullName}">Vui lòng nhập họ và tên.</div>
+                        <div id="fullNameError" class="invalid-feedback" role="alert" aria-live="polite">
+                            <span th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">
+                                Vui lòng nhập họ và tên.
+                            </span>
+                            <span th:unless="${#fields.hasErrors('fullName')}">Vui lòng nhập họ và tên.</span>
+                        </div>
                     </div>
                     <div>
                         <label class="form-label" for="email">Email</label>
@@ -46,24 +56,49 @@
                             <i class="bi bi-envelope" aria-hidden="true"></i>
                             <input class="form-control" type="email" id="email" th:field="*{email}"
                                    placeholder="name@example.com" autocomplete="email" maxlength="254"
-                                   th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''" required>
+                                   th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''"
+                                   th:attr="aria-invalid=${#fields.hasErrors('email')}"
+                                   aria-describedby="emailError"
+                                   data-required-message="Vui lòng nhập email."
+                                   data-type-message="Địa chỉ email không hợp lệ."
+                                   data-length-message="Email quá dài."
+                                   required>
                         </div>
-                        <div class="invalid-feedback" th:errors="*{email}">Vui lòng nhập email hợp lệ.</div>
+                        <div id="emailError" class="invalid-feedback" role="alert" aria-live="polite">
+                            <span th:if="${#fields.hasErrors('email')}" th:errors="*{email}">
+                                Vui lòng nhập email hợp lệ.
+                            </span>
+                            <span th:unless="${#fields.hasErrors('email')}">Vui lòng nhập email hợp lệ.</span>
+                        </div>
                     </div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label" for="password">Mật khẩu</label>
                             <div class="input-with-icon password-control">
                                 <i class="bi bi-lock" aria-hidden="true"></i>
-                                <input class="form-control" type="password" id="password" name="password"
+                                <input class="form-control" type="password" id="password" th:field="*{password}"
                                        placeholder="Ít nhất 8 ký tự" autocomplete="new-password"
                                        minlength="8" maxlength="72"
-                                       th:classappend="${#fields.hasErrors('password')} ? 'is-invalid' : ''" required>
+                                       pattern="(?=.*[A-Za-z])(?=.*\d).{8,72}"
+                                       th:classappend="${#fields.hasErrors('password')} ? 'is-invalid' : ''"
+                                       th:attr="aria-invalid=${#fields.hasErrors('password')}"
+                                       aria-describedby="passwordHelp passwordError"
+                                       data-required-message="Vui lòng nhập mật khẩu."
+                                       data-pattern-message="Mật khẩu phải có 8–72 ký tự, gồm ít nhất một chữ và một số."
+                                       required>
                                 <button type="button" class="password-toggle" data-password-toggle="password"
-                                        aria-label="Hiện mật khẩu"><i class="bi bi-eye"></i></button>
+                                        aria-label="Hiện mật khẩu" aria-controls="password" aria-pressed="false">
+                                    <i class="bi bi-eye" aria-hidden="true"></i>
+                                </button>
                             </div>
-                            <div class="invalid-feedback" th:errors="*{password}">
-                                Mật khẩu phải có ít nhất một chữ và một số.
+                            <div id="passwordHelp" class="form-text">
+                                Dùng 8–72 ký tự, gồm ít nhất một chữ và một số.
+                            </div>
+                            <div id="passwordError" class="invalid-feedback" role="alert" aria-live="polite">
+                                <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}">
+                                    Mật khẩu chưa hợp lệ.
+                                </span>
+                                <span th:unless="${#fields.hasErrors('password')}">Mật khẩu chưa hợp lệ.</span>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -71,29 +106,48 @@
                             <div class="input-with-icon password-control">
                                 <i class="bi bi-lock-fill" aria-hidden="true"></i>
                                 <input class="form-control" type="password" id="confirmPassword"
-                                       name="confirmPassword" placeholder="Nhập lại mật khẩu"
+                                       th:field="*{confirmPassword}" placeholder="Nhập lại mật khẩu"
                                        autocomplete="new-password"
                                        th:classappend="${#fields.hasErrors('confirmPassword')} ? 'is-invalid' : ''"
+                                       th:attr="aria-invalid=${#fields.hasErrors('confirmPassword')}"
+                                       aria-describedby="confirmPasswordError"
+                                       data-required-message="Vui lòng xác nhận mật khẩu."
+                                       data-mismatch-message="Mật khẩu xác nhận chưa khớp."
                                        required>
                                 <button type="button" class="password-toggle"
                                         data-password-toggle="confirmPassword"
-                                        aria-label="Hiện mật khẩu xác nhận"><i class="bi bi-eye"></i></button>
+                                        aria-label="Hiện mật khẩu xác nhận" aria-controls="confirmPassword"
+                                        aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
                             </div>
-                            <div class="invalid-feedback" th:errors="*{confirmPassword}">
-                                Mật khẩu xác nhận chưa khớp.
+                            <div id="confirmPasswordError" class="invalid-feedback" role="alert"
+                                 aria-live="polite">
+                                <span th:if="${#fields.hasErrors('confirmPassword')}"
+                                      th:errors="*{confirmPassword}">Mật khẩu xác nhận chưa khớp.</span>
+                                <span th:unless="${#fields.hasErrors('confirmPassword')}">
+                                    Vui lòng xác nhận mật khẩu.
+                                </span>
                             </div>
                         </div>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="acceptedTerms"
                                th:field="*{acceptedTerms}"
-                               th:classappend="${#fields.hasErrors('acceptedTerms')} ? 'is-invalid' : ''" required>
+                               th:classappend="${#fields.hasErrors('acceptedTerms')} ? 'is-invalid' : ''"
+                               th:attr="aria-invalid=${#fields.hasErrors('acceptedTerms')}"
+                               aria-describedby="acceptedTermsError"
+                               data-required-message="Bạn cần đồng ý với điều khoản sử dụng."
+                               required>
                         <label class="form-check-label" for="acceptedTerms">
                             Tôi đồng ý với <a th:href="@{/terms}">Điều khoản sử dụng</a> và
                             <a th:href="@{/privacy}">Chính sách quyền riêng tư</a>; hệ thống chỉ phục vụ nghiên cứu.
                         </label>
-                        <div class="invalid-feedback" th:errors="*{acceptedTerms}">
-                            Bạn cần đồng ý với điều khoản để tiếp tục.
+                        <div id="acceptedTermsError" class="invalid-feedback" role="alert" aria-live="polite">
+                            <span th:if="${#fields.hasErrors('acceptedTerms')}" th:errors="*{acceptedTerms}">
+                                Bạn cần đồng ý với điều khoản sử dụng.
+                            </span>
+                            <span th:unless="${#fields.hasErrors('acceptedTerms')}">
+                                Bạn cần đồng ý với điều khoản sử dụng.
+                            </span>
                         </div>
                     </div>
                     <button class="btn btn-primary btn-lg w-100" type="submit">

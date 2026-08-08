@@ -7,7 +7,9 @@ import importlib.util
 import logging
 import math
 import os
+import re
 import sys
+import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from io import BytesIO
@@ -18,8 +20,17 @@ from typing import Any
 import numpy as np
 import torch
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.exception_handlers import (
+    http_exception_handler,
+    request_validation_exception_handler,
+)
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel
+
+from mobile_contract import MobileErrorResponse
+from mobile_routes import MobileApiError, create_mobile_router
 
 PIL_IMAGE_OPEN = Image.open
 
@@ -69,6 +80,34 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 MAX_IMAGE_PIXELS = 40_000_000
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png"}
 ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG"}
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
+
+
+def positive_int_setting(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+        return value if value >= 1 else default
+    except (TypeError, ValueError):
+        return default
+
+
+def positive_float_setting(name: str, default: float) -> float:
+    try:
+        value = float(os.getenv(name, str(default)))
+        return value if math.isfinite(value) and value > 0 else default
+    except (TypeError, ValueError):
+        return default
+
+
+MAX_CONCURRENT_MOBILE_INFERENCE = positive_int_setting(
+    "AI_MAX_CONCURRENT_INFERENCE", 1
+)
+MOBILE_QUEUE_TIMEOUT_SECONDS = positive_float_setting(
+    "AI_INFERENCE_QUEUE_TIMEOUT_SECONDS", 5.0
+)
+MOBILE_INFERENCE_TIMEOUT_SECONDS = positive_float_setting(
+    "AI_INFERENCE_TIMEOUT_SECONDS", 120.0
+)
 
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
@@ -201,6 +240,12 @@ async def lifespan(app: FastAPI):
         model_name: load_model_runtime(model_name, config, device)
         for model_name, config in MODEL_CONFIG.items()
     }
+    app.state.mobile_inference_semaphore = asyncio.Semaphore(
+        MAX_CONCURRENT_MOBILE_INFERENCE
+    )
+    app.state.mobile_queue_timeout_seconds = MOBILE_QUEUE_TIMEOUT_SECONDS
+    app.state.mobile_inference_timeout_seconds = MOBILE_INFERENCE_TIMEOUT_SECONDS
+    app.state.mobile_run_inference = run_inference
     ready_count = sum(
         runtime.status == "ready" for runtime in app.state.models.values()
     )
@@ -225,6 +270,112 @@ app = FastAPI(
     version="0.3.0",
     lifespan=lifespan,
 )
+
+
+def mobile_request_id(request: Request) -> str:
+    value = request.headers.get("X-Request-ID", "").strip()
+    return value if REQUEST_ID_PATTERN.fullmatch(value) else str(uuid.uuid4())
+
+
+def mobile_error_response(
+    request: Request,
+    status_code: int,
+    code: str,
+    message: str,
+    field_errors: dict[str, str] | None = None,
+) -> JSONResponse:
+    body = MobileErrorResponse(
+        requestId=request.state.request_id,
+        status=status_code,
+        code=code,
+        message=message,
+        fieldErrors=field_errors or {},
+    )
+    return JSONResponse(
+        status_code=status_code,
+        content=body.model_dump(),
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.middleware("http")
+async def mobile_request_context(request: Request, call_next):
+    if not request.url.path.startswith("/api/v1/"):
+        return await call_next(request)
+
+    request.state.request_id = mobile_request_id(request)
+    started = perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        LOGGER.error(
+            "Mobile API internal error requestId=%s method=%s path=%s",
+            request.state.request_id,
+            request.method,
+            request.url.path,
+        )
+        response = mobile_error_response(
+            request,
+            500,
+            "INTERNAL_ERROR",
+            "Đã xảy ra lỗi nội bộ. Vui lòng thử lại sau.",
+        )
+    duration_ms = (perf_counter() - started) * 1000
+    response.headers["X-Request-ID"] = request.state.request_id
+    LOGGER.info(
+        "Mobile API requestId=%s method=%s path=%s status=%s durationMs=%.3f",
+        request.state.request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
+
+
+@app.exception_handler(MobileApiError)
+async def mobile_api_error_handler(
+    request: Request, exception: MobileApiError
+) -> JSONResponse:
+    return mobile_error_response(
+        request,
+        exception.status_code,
+        exception.code,
+        exception.message,
+        exception.field_errors,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exception: RequestValidationError):
+    if not request.url.path.startswith("/api/v1/"):
+        return await request_validation_exception_handler(request, exception)
+    field_errors: dict[str, str] = {}
+    for error in exception.errors():
+        location = error.get("loc", ())
+        field = str(location[-1]) if location else "request"
+        field_errors.setdefault(field, str(error.get("msg", "Dữ liệu không hợp lệ.")))
+    return mobile_error_response(
+        request,
+        422,
+        "VALIDATION_ERROR",
+        "Dữ liệu yêu cầu không hợp lệ.",
+        field_errors,
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_error_handler(request: Request, exception: HTTPException):
+    if not request.url.path.startswith("/api/v1/"):
+        return await http_exception_handler(request, exception)
+    code = {
+        413: "FILE_TOO_LARGE",
+        415: "UNSUPPORTED_MEDIA_TYPE",
+        422: "INVALID_IMAGE",
+        503: "MODEL_NOT_READY",
+    }.get(exception.status_code, "INTERNAL_ERROR")
+    message = exception.detail if isinstance(exception.detail, str) else "Yêu cầu không hợp lệ."
+    return mobile_error_response(request, exception.status_code, code, message)
 
 
 @app.get("/health")
@@ -254,6 +405,12 @@ async def health(request: Request) -> dict[str, Any]:
 def decode_image(content: bytes, declared_content_type: str) -> Image.Image:
     try:
         with PIL_IMAGE_OPEN(BytesIO(content)) as source:
+            width, height = source.size
+            if width <= 0 or height <= 0 or width * height > MAX_IMAGE_PIXELS:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="The decoded image exceeds 40 million pixels",
+                )
             source.verify()
             image_format = source.format
 
@@ -440,3 +597,8 @@ async def predict(
             else "No suspected polyp region detected"
         ),
     )
+
+
+app.include_router(
+    create_mobile_router(model_config=MODEL_CONFIG, decode_image=decode_image)
+)

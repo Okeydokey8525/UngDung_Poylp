@@ -1,13 +1,10 @@
 package com.polyp.polypweb.controller;
 
-import com.polyp.polypweb.client.AiInferenceClient;
-import com.polyp.polypweb.client.AiServiceException;
+import com.polyp.polypweb.exception.DiagnosisOperationException;
 import com.polyp.polypweb.view.DiagnosisResultView;
-import com.polyp.polypweb.view.AiPredictionResponse;
 import com.polyp.polypweb.view.ModelOptionView;
+import com.polyp.polypweb.service.DiagnosisAnalysisService;
 import com.polyp.polypweb.service.DiagnosisHistoryService;
-import com.polyp.polypweb.service.FileStorageService;
-import com.polyp.polypweb.service.StorageException;
 import com.polyp.polypweb.security.CurrentUserPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +21,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 @Controller
 public class DiagnosisController {
@@ -35,8 +31,7 @@ public class DiagnosisController {
             "yolo26n-vmamba-seg"
     );
     private final DiagnosisHistoryService historyService;
-    private final AiInferenceClient aiInferenceClient;
-    private final FileStorageService storageService;
+    private final DiagnosisAnalysisService analysisService;
 
     private static final List<ModelOptionView> MODEL_OPTIONS = List.of(
             baseline("yolo26n-seg", "YOLO26n-seg", "Phiên bản nano, ưu tiên tốc độ và tài nguyên tính toán thấp."),
@@ -53,11 +48,9 @@ public class DiagnosisController {
 
     public DiagnosisController(
             DiagnosisHistoryService historyService,
-            AiInferenceClient aiInferenceClient,
-            FileStorageService storageService) {
+            DiagnosisAnalysisService analysisService) {
         this.historyService = historyService;
-        this.aiInferenceClient = aiInferenceClient;
-        this.storageService = storageService;
+        this.analysisService = analysisService;
     }
 
     @GetMapping("/diagnose")
@@ -94,53 +87,17 @@ public class DiagnosisController {
                 .orElse(MODEL_OPTIONS.get(0).getName());
 
         DiagnosisResultView savedResult;
-        String originalImageUrl = null;
-        String resultImageUrl = null;
         try {
-            UUID storageId = UUID.randomUUID();
-            originalImageUrl = storageService.storeOriginal(image, storageId);
-
-            AiPredictionResponse prediction = aiInferenceClient.predict(image, selectedModel);
-            resultImageUrl = storageService.storeResult(prediction.getResultImageBase64(), storageId);
-
-            DiagnosisResultView apiResult = createResultFromPrediction(
-                    prediction,
-                    image.getOriginalFilename(),
-                    selectedModel,
-                    originalImageUrl,
-                    resultImageUrl
-            );
-            savedResult = historyService.saveResult(apiResult, principal.getUserId());
-        } catch (AiServiceException exception) {
-            cleanupStoredImages(originalImageUrl, resultImageUrl);
+            savedResult = analysisService.analyze(image, selectedModel, principal.getUserId());
+        } catch (DiagnosisOperationException exception) {
             LOGGER.warn(
-                    "Inference unavailable userId={} modelType={} type={}",
+                    "Diagnosis rejected userId={} modelType={} code={}",
                     shortId(principal.getUserId()),
                     selectedModel,
-                    exception.getClass().getSimpleName()
+                    exception.getCode()
             );
             redirectAttributes.addFlashAttribute("flashType", "warning");
             redirectAttributes.addFlashAttribute("flashMessage", exception.getMessage());
-            return "redirect:/diagnose";
-        } catch (StorageException exception) {
-            cleanupStoredImages(originalImageUrl, resultImageUrl);
-            LOGGER.warn(
-                    "Storage rejected diagnosis userId={} modelType={} type={}",
-                    shortId(principal.getUserId()),
-                    selectedModel,
-                    exception.getClass().getSimpleName()
-            );
-            redirectAttributes.addFlashAttribute("flashType", "warning");
-            redirectAttributes.addFlashAttribute("flashMessage", exception.getMessage());
-            return "redirect:/diagnose";
-        } catch (RuntimeException exception) {
-            cleanupStoredImages(originalImageUrl, resultImageUrl);
-            LOGGER.error("Không thể hoàn tất lưu kết quả inference", exception);
-            redirectAttributes.addFlashAttribute("flashType", "warning");
-            redirectAttributes.addFlashAttribute(
-                    "flashMessage",
-                    "Không thể lưu kết quả phân tích. Các file tạm đã được dọn dẹp."
-            );
             return "redirect:/diagnose";
         }
 
@@ -224,51 +181,6 @@ public class DiagnosisController {
                 createdAt,
                 true
         );
-    }
-
-    private DiagnosisResultView createResultFromPrediction(
-            AiPredictionResponse prediction,
-            String uploadedFileName,
-            String selectedModel,
-            String originalImageUrl,
-            String resultImageUrl) {
-        String fileName = prediction.getOriginalFileName();
-        if (fileName == null || fileName.isBlank()) {
-            fileName = uploadedFileName == null ? "anh-noi-soi.jpg" : uploadedFileName;
-        }
-
-        String responseModel = prediction.getModelType();
-        if (responseModel == null || responseModel.isBlank()) {
-            responseModel = selectedModel;
-        }
-
-        double confidencePercent = prediction.getConfidence() <= 1
-                ? prediction.getConfidence() * 100
-                : prediction.getConfidence();
-        confidencePercent = Math.max(0, Math.min(100, confidencePercent));
-
-        return new DiagnosisResultView(
-                null,
-                originalImageUrl,
-                resultImageUrl,
-                fileName,
-                responseModel,
-                prediction.isDetected(),
-                prediction.getLabel(),
-                confidencePercent,
-                prediction.getProcessingTimeMs(),
-                prediction.getMaskCount(),
-                "1280 × 720 px",
-                LocalDateTime.now(),
-                false,
-                null,
-                false
-        );
-    }
-
-    private void cleanupStoredImages(String originalImageUrl, String resultImageUrl) {
-        storageService.deleteQuietly(originalImageUrl);
-        storageService.deleteQuietly(resultImageUrl);
     }
 
     private static ModelOptionView baseline(String code, String name, String description) {

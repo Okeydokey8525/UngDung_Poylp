@@ -60,6 +60,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -155,6 +156,106 @@ class SecurityIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("href=\"/privacy\"")))
                 .andExpect(content().string(containsString("href=\"/terms\"")));
+    }
+
+    @Test
+    void registerRendersPersistentFieldFeedbackAndAccessibleRelationships() throws Exception {
+        mockMvc.perform(get("/register"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"fullNameError\"")))
+                .andExpect(content().string(containsString("id=\"emailError\"")))
+                .andExpect(content().string(containsString("id=\"passwordError\"")))
+                .andExpect(content().string(containsString("id=\"confirmPasswordError\"")))
+                .andExpect(content().string(containsString("id=\"acceptedTermsError\"")))
+                .andExpect(content().string(containsString(
+                        "aria-describedby=\"passwordHelp passwordError\""
+                )))
+                .andExpect(content().string(containsString("aria-invalid=\"false\"")))
+                .andExpect(content().string(containsString(
+                        "pattern=\"(?=.*[A-Za-z])(?=.*\\d).{8,72}\""
+                )))
+                .andExpect(content().string(containsString("Vui lòng nhập mật khẩu.")));
+    }
+
+    @Test
+    void registerBlankSubmissionRendersFieldSpecificServerErrors() throws Exception {
+        mockMvc.perform(post("/register").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("auth/register"))
+                .andExpect(model().attributeHasFieldErrors(
+                        "registerForm",
+                        "fullName",
+                        "email",
+                        "password",
+                        "confirmPassword",
+                        "acceptedTerms"
+                ))
+                .andExpect(content().string(containsString("Vui lòng nhập họ và tên.")))
+                .andExpect(content().string(containsString("Vui lòng nhập email.")))
+                .andExpect(content().string(containsString("Vui lòng nhập mật khẩu.")))
+                .andExpect(content().string(containsString("Vui lòng xác nhận mật khẩu.")))
+                .andExpect(content().string(containsString(
+                        "Bạn cần đồng ý với điều khoản sử dụng."
+                )))
+                .andExpect(content().string(containsString("aria-invalid=\"true\"")));
+    }
+
+    @Test
+    void registerRendersActualNameEmailAndPasswordRuleErrors() throws Exception {
+        mockMvc.perform(post("/register")
+                        .with(csrf())
+                        .param("fullName", "A")
+                        .param("email", "not-an-email")
+                        .param("password", "password")
+                        .param("confirmPassword", "password")
+                        .param("acceptedTerms", "true"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors(
+                        "registerForm",
+                        "fullName",
+                        "email",
+                        "password"
+                ))
+                .andExpect(content().string(containsString(
+                        "Họ và tên phải có từ 2 đến 100 ký tự."
+                )))
+                .andExpect(content().string(containsString("Địa chỉ email không hợp lệ.")))
+                .andExpect(content().string(containsString(
+                        "Mật khẩu phải có 8–72 ký tự, gồm ít nhất một chữ và một số."
+                )))
+                .andExpect(content().string(not(containsString("value=\"password\""))));
+    }
+
+    @Test
+    void registerPasswordMismatchRendersErrorAtConfirmationField() throws Exception {
+        mockMvc.perform(post("/register")
+                        .with(csrf())
+                        .param("fullName", "New User")
+                        .param("email", "new@example.com")
+                        .param("password", "Password123")
+                        .param("confirmPassword", "Different123")
+                        .param("acceptedTerms", "true"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("registerForm", "confirmPassword"))
+                .andExpect(content().string(containsString("Mật khẩu xác nhận chưa khớp.")))
+                .andExpect(content().string(containsString("id=\"confirmPasswordError\"")));
+    }
+
+    @Test
+    void registerDuplicateEmailRendersErrorAtEmailField() throws Exception {
+        when(userAccountRepository.existsByEmailIgnoreCase("existing@example.com")).thenReturn(true);
+
+        mockMvc.perform(post("/register")
+                        .with(csrf())
+                        .param("fullName", "Existing User")
+                        .param("email", "existing@example.com")
+                        .param("password", "Password123")
+                        .param("confirmPassword", "Password123")
+                        .param("acceptedTerms", "true"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("registerForm", "email"))
+                .andExpect(content().string(containsString("Email đã được sử dụng.")))
+                .andExpect(content().string(containsString("id=\"emailError\"")));
     }
 
     @Test

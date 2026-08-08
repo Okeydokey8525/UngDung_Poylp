@@ -1,0 +1,5 @@
+# Copy this file to android/key.properties and keep the copy outside version control.
+storePassword=<your-store-password>
+keyPassword=<your-key-password>
+keyAlias=polypvision
+storeFile=<absolute-or-android-relative-path-to-keystore>
