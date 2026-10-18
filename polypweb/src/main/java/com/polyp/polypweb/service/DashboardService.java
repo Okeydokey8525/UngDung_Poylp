@@ -36,8 +36,8 @@ import java.util.Set;
 public class DashboardService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DashboardService.class);
-    private static final String BASELINE_MODEL = "YOLO26n-seg";
-    private static final String VMAMBA_MODEL = "YOLO26n-VMamba-seg";
+    private static final String BASELINE_MODEL = "YOLO26s-seg";
+    private static final String VMAMBA_MODEL = "YOLO26s-TSVM-FP32-seg";
     private static final int CHART_DAYS = 7;
     private static final int RECENT_LIMIT = 10;
     private static final ZoneId DASHBOARD_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");

@@ -60,14 +60,14 @@ AiModelsResponse _models({bool baseline = true, bool vmamba = true}) =>
       requestId: 'm5-models-request',
       models: [
         AiModelInfo(
-          key: 'YOLO26n-seg',
-          name: 'YOLO26n-seg',
+          key: 'YOLO26s-seg',
+          name: 'YOLO26s-seg',
           family: 'baseline',
           ready: baseline,
         ),
         AiModelInfo(
-          key: 'YOLO26n-VMamba-seg',
-          name: 'YOLO26n-seg + VMamba',
+          key: 'YOLO26s-TSVM-FP32-seg',
+          name: 'YOLO26s-seg + TSVM FP32',
           family: 'vmamba',
           ready: vmamba,
         ),
@@ -105,8 +105,8 @@ AiComparisonResult _result() => AiComparisonResult.fromJson({
   'originalHeight': 1,
   'totalProcessingTimeMs': 104.5,
   'baseline': _modelResult(
-    key: 'YOLO26n-seg',
-    name: 'YOLO26n-seg',
+    key: 'YOLO26s-seg',
+    name: 'YOLO26s-seg',
     family: 'baseline',
     detected: true,
     confidence: 0.912,
@@ -114,8 +114,8 @@ AiComparisonResult _result() => AiComparisonResult.fromJson({
     time: 43.5,
   ),
   'vmamba': _modelResult(
-    key: 'YOLO26n-VMamba-seg',
-    name: 'YOLO26n-seg + VMamba',
+    key: 'YOLO26s-TSVM-FP32-seg',
+    name: 'YOLO26s-seg + TSVM FP32',
     family: 'vmamba',
     detected: false,
     confidence: 0.08,
@@ -530,7 +530,7 @@ void main() {
         find.byKey(const Key('direct-baseline-result-panel')),
         findsOneWidget,
       );
-      expect(find.text('YOLO26n-seg'), findsWidgets);
+      expect(find.text('YOLO26s-seg'), findsWidgets);
       expect(find.text('91.2%'), findsOneWidget);
       expect(find.text('43.5 ms'), findsOneWidget);
     });
@@ -546,7 +546,7 @@ void main() {
         find.byKey(const Key('direct-vmamba-result-panel')),
         findsOneWidget,
       );
-      expect(find.text('YOLO26n-seg + VMamba'), findsWidgets);
+      expect(find.text('YOLO26s-seg + TSVM FP32'), findsWidgets);
       expect(find.text('8.0%'), findsOneWidget);
       expect(find.text('61.0 ms'), findsOneWidget);
     });

@@ -274,14 +274,14 @@ final class _LegalRepository implements AiRepository {
     'requestId': 'm7-legal-models',
     'models': [
       {
-        'key': 'YOLO26n-seg',
-        'name': 'YOLO26n-seg',
+        'key': 'YOLO26s-seg',
+        'name': 'YOLO26s-seg',
         'family': 'baseline',
         'ready': true,
       },
       {
-        'key': 'YOLO26n-VMamba-seg',
-        'name': 'YOLO26n-seg + VMamba',
+        'key': 'YOLO26s-TSVM-FP32-seg',
+        'name': 'YOLO26s-seg + TSVM FP32',
         'family': 'vmamba',
         'ready': true,
       },

@@ -36,7 +36,7 @@ class DirectAboutScreen extends ConsumerWidget {
               ),
               SizedBox(height: 8),
               Text(
-                'Nghiên cứu phương pháp tích hợp VMamba vào YOLO26n-seg trong '
+                'Nghiên cứu phương pháp tích hợp VMamba vào YOLO26s-seg trong '
                 'phân đoạn polyp đại trực tràng từ ảnh nội soi.',
               ),
               SizedBox(height: 8),
@@ -161,13 +161,13 @@ class _ResearchModelsCard extends StatelessWidget {
           const ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.model_training_outlined),
-            title: Text('YOLO26n-seg'),
+            title: Text('YOLO26s-seg'),
             subtitle: Text('Baseline dùng để đối chiếu.'),
           ),
           const ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.hub_outlined),
-            title: Text('YOLO26n-seg + VMamba'),
+            title: Text('YOLO26s-seg + TSVM FP32'),
             subtitle: Text('Mô hình nghiên cứu tích hợp khối VMamba.'),
           ),
         ],

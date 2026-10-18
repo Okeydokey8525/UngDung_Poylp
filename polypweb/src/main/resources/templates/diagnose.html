@@ -92,20 +92,20 @@
                                     th:disabled="${!option.enabled}"
                                     th:text="${option.name + (option.enabled ? '' : ' — chưa kích hoạt')}"
                                     th:attr="data-description=${option.description},data-vmamba=${option.vmamba}">
-                                YOLO26n-seg
+                                YOLO26s-seg
                             </option>
                         </select>
                         <div class="model-description" id="modelDescription">
                             <div class="model-description-icon"><i class="bi bi-cpu"></i></div>
                             <div>
                                 <span id="modelCategory">Baseline</span>
-                                <p id="modelDescriptionText">Phiên bản nano, ưu tiên tốc độ và tài nguyên tính toán thấp.</p>
+                                <p id="modelDescriptionText">Mô hình YOLO26s-seg cơ bản dùng đối chiếu thực nghiệm BG20.</p>
                             </div>
                         </div>
                         <div class="mock-info">
                             <i class="bi bi-info-circle"></i>
-                            <p>Giai đoạn 3D chạy thật <code>YOLO26n-seg</code> và
-                                <code>YOLO26n-VMamba-seg</code> với cùng ngưỡng confidence và kích thước đầu vào.</p>
+                            <p>Giai đoạn 3D chạy thật <code>YOLO26s-seg</code> và
+                                <code>YOLO26s-TSVM-FP32-seg</code> với cùng ngưỡng confidence và kích thước đầu vào.</p>
                         </div>
                         <button class="btn btn-primary btn-lg w-100 analyze-button" type="submit" id="analyzeButton">
                             <span class="button-default">

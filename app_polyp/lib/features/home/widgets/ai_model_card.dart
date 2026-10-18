@@ -18,8 +18,8 @@ class AiModelCard extends StatelessWidget {
       _ => model.family,
     };
     final description = switch (model.key) {
-      'YOLO26n-seg' => 'Mô hình baseline dùng để đối chiếu.',
-      'YOLO26n-VMamba-seg' =>
+      'YOLO26s-seg' => 'Mô hình baseline dùng để đối chiếu.',
+      'YOLO26s-TSVM-FP32-seg' =>
         'Mô hình nghiên cứu tích hợp khối VMamba vào backbone.',
       _ => 'Mô hình phân đoạn phục vụ nghiên cứu.',
     };

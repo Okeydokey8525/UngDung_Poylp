@@ -133,14 +133,14 @@ void main() {
       'originalImageUrl': '/original',
       'baseline': {
         'id': 'b',
-        'modelType': 'YOLO26n-seg',
+        'modelType': 'YOLO26s-seg',
         'modelCategory': 'BASELINE',
         'confidence': 0.62,
         'resultImageUrl': '/baseline',
       },
       'vmamba': {
         'id': 'v',
-        'modelType': 'YOLO26n-VMamba-seg',
+        'modelType': 'YOLO26s-TSVM-FP32-seg',
         'modelCategory': 'VMAMBA',
         'confidence': 0.67,
         'resultImageUrl': '/vmamba',
@@ -164,12 +164,12 @@ void main() {
   });
 
   test('M5 03 baseline maps to exact model contract', () {
-    expect(testComparisonResult().baseline.modelType, 'YOLO26n-seg');
+    expect(testComparisonResult().baseline.modelType, 'YOLO26s-seg');
     expect(testComparisonResult().baseline.modelCategory, 'BASELINE');
   });
 
   test('M5 04 VMamba maps to exact model contract', () {
-    expect(testComparisonResult().vmamba.modelType, 'YOLO26n-VMamba-seg');
+    expect(testComparisonResult().vmamba.modelType, 'YOLO26s-TSVM-FP32-seg');
     expect(testComparisonResult().vmamba.modelCategory, 'VMAMBA');
   });
 

@@ -4,7 +4,7 @@ FastAPI AI Service là lớp inference dùng chung cho hai client độc lập c
 
 ```text
 Spring Boot Web ─┐
-                 ├─→ FastAPI → YOLO26n-seg / YOLO26n-VMamba-seg
+                 ├─→ FastAPI → YOLO26s-seg / YOLO26s-TSVM-FP32-seg
 Flutter Mobile ──┘
 ```
 
@@ -16,10 +16,12 @@ Registry trong `main.py` có đúng hai model key:
 
 | Model key | Family | Checkpoint mặc định |
 |---|---|---|
-| `YOLO26n-seg` | `baseline` | `models/yolo26n-seg-best.pt` |
-| `YOLO26n-VMamba-seg` | `vmamba` | `models/yolo26n-vmamba-seg-best.pt` |
+| `YOLO26s-seg` | `baseline` | `models/yolo26s-seg-best.pt` |
+| `YOLO26s-TSVM-FP32-seg` | `vmamba` | `models/yolo26s-tsvm-fp32-best.pt` |
 
-Checkpoint VMamba cần custom module `custom_ultralytics.vmamba.VMambaBlock` được đăng ký trước khi Ultralytics load file. Source block dùng VSS/SS2D-inspired four-direction selective scan trên YOLO feature maps; checkpoint hiện tại đặt block sau `C2PSA` cuối backbone. Đây không phải tuyên bố rằng model là full Vision Mamba hoặc SegMamba.
+Checkpoint TSVM FP32 cần các lớp trong `ultralytics.nn.modules.topology_shape_vmamba` được đăng ký trước khi tải. Bản mã vendored được sao chép từ thực nghiệm FP32; khối `C2TSVMamba` thay C2PSA ở layer 10. Không dùng `VMambaBlock` của nghiên cứu Nano cũ cho checkpoint này.
+
+Hai trọng số mặc định là `best.pt` của seed 0 từ đúng hai thư mục thực nghiệm Baseline và TSVM_FP32. Nguồn và mã băm nằm trong `models/experiment_manifest.json`. Khi tải, dịch vụ kiểm tra task segment, lớp polyp và sự hiện diện của C2TSVMamba đối với mô hình cải tiến. Cả hai mô hình chạy float32 với `half=False`. Ảnh RGB sau giải mã được truyền dưới dạng PIL để Ultralytics không hiểu nhầm thành BGR.
 
 Không commit checkpoint hoặc đường dẫn tuyệt đối của máy cá nhân.
 
@@ -38,7 +40,7 @@ Trả trạng thái service, device và trạng thái load của từng model tr
 | Field | Kiểu | Nội dung |
 |---|---|---|
 | `image` | file | JPG/JPEG hoặc PNG |
-| `modelType` | string | `YOLO26n-seg` hoặc `YOLO26n-VMamba-seg` |
+| `modelType` | string | `YOLO26s-seg` hoặc `YOLO26s-TSVM-FP32-seg` |
 
 Phản hồi thành công gồm `success`, `detected`, `label`, `confidence`, `processingTimeMs`, `maskCount`, `modelType`, `originalFileName`, `resultImageBase64` và `message`.
 
@@ -125,9 +127,9 @@ Giới hạn quan trọng: PyTorch/GPU worker chạy trong thread không thể b
 
 | Biến | Mặc định | Mô tả |
 |---|---|---|
-| `AI_BASELINE_MODEL_PATH` | `models/yolo26n-seg-best.pt` | Checkpoint Baseline |
+| `AI_BASELINE_MODEL_PATH` | `models/yolo26s-seg-best.pt` | Checkpoint Baseline |
 | `AI_MODEL_PATH` | như checkpoint Baseline mặc định | Fallback legacy cho Baseline |
-| `AI_VMAMBA_MODEL_PATH` | `models/yolo26n-vmamba-seg-best.pt` | Checkpoint VMamba |
+| `AI_VMAMBA_MODEL_PATH` | `models/yolo26s-tsvm-fp32-best.pt` | Checkpoint VMamba |
 | `AI_DEVICE` | `auto` | `auto`, `cpu`, `cuda:0`, ... |
 | `AI_CONFIDENCE_THRESHOLD` | `0.25` | Threshold truyền vào inference |
 | `AI_IMAGE_SIZE` | `640` | Image size truyền vào inference |
@@ -188,7 +190,7 @@ Với `curl.exe` trên Windows:
 ```powershell
 curl.exe -X POST "http://127.0.0.1:8000/predict" `
   -F "image=@C:\path\to\sample.jpg;type=image/jpeg" `
-  -F "modelType=YOLO26n-seg"
+  -F "modelType=YOLO26s-seg"
 ```
 
 ### Mobile inference
@@ -197,7 +199,7 @@ curl.exe -X POST "http://127.0.0.1:8000/predict" `
 curl.exe -X POST "http://127.0.0.1:8000/api/v1/inference" `
   -H "X-Request-ID: manual-inference-001" `
   -F "image=@C:\path\to\sample.png;type=image/png" `
-  -F "modelKey=YOLO26n-VMamba-seg"
+  -F "modelKey=YOLO26s-TSVM-FP32-seg"
 ```
 
 ### Mobile comparison

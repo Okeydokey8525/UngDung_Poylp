@@ -27,25 +27,16 @@ public class DiagnosisController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DiagnosisController.class);
     private static final Set<String> ACTIVE_MODEL_CODES = Set.of(
-            "yolo26n-seg",
-            "yolo26n-vmamba-seg"
+            "yolo26s-seg",
+            "yolo26s-tsvm-fp32-seg"
     );
     private final DiagnosisHistoryService historyService;
     private final DiagnosisAnalysisService analysisService;
 
     private static final List<ModelOptionView> MODEL_OPTIONS = List.of(
-            baseline("yolo26n-seg", "YOLO26n-seg", "Phiên bản nano, ưu tiên tốc độ và tài nguyên tính toán thấp."),
-            baseline("yolo26s-seg", "YOLO26s-seg", "Phiên bản small, cân bằng giữa tốc độ và khả năng biểu diễn."),
-            baseline("yolo26m-seg", "YOLO26m-seg", "Phiên bản medium với năng lực biểu diễn ở mức trung bình."),
-            baseline("yolo26l-seg", "YOLO26l-seg", "Phiên bản large dành cho cấu hình thử nghiệm lớn hơn."),
-            baseline("yolo26x-seg", "YOLO26x-seg", "Phiên bản extra-large dùng trong so sánh cấu hình."),
-            vmamba("yolo26n-vmamba-seg", "YOLO26n-VMamba-seg", "Biến thể nano tích hợp VMambaBlock ở feature map mức cao."),
-            vmamba("yolo26s-vmamba-seg", "YOLO26s-VMamba-seg", "Biến thể small phục vụ nghiên cứu phụ thuộc không gian dài hạn."),
-            vmamba("yolo26m-vmamba-seg", "YOLO26m-VMamba-seg", "Biến thể medium tích hợp khối VSS/SS2D-inspired."),
-            vmamba("yolo26l-vmamba-seg", "YOLO26l-VMamba-seg", "Biến thể large dùng để đánh giá ảnh hưởng của VMambaBlock."),
-            vmamba("yolo26x-vmamba-seg", "YOLO26x-VMamba-seg", "Biến thể extra-large cho cấu hình nghiên cứu mở rộng.")
+            baseline("yolo26s-seg", "YOLO26s-seg", "Mô hình cơ bản dùng đối chiếu thực nghiệm BG20."),
+            vmamba("yolo26s-tsvm-fp32-seg", "YOLO26s-TSVM-FP32-seg", "C2TSVMamba tại tầng 10 và suy luận FP32.")
     );
-
     public DiagnosisController(
             DiagnosisHistoryService historyService,
             DiagnosisAnalysisService analysisService) {
@@ -63,7 +54,7 @@ public class DiagnosisController {
     public String diagnoseImage(
             @AuthenticationPrincipal CurrentUserPrincipal principal,
             @RequestParam(value = "image", required = false) MultipartFile image,
-            @RequestParam(value = "modelType", defaultValue = "yolo26n-seg") String modelType,
+            @RequestParam(value = "modelType", defaultValue = "yolo26s-seg") String modelType,
             RedirectAttributes redirectAttributes) {
         if (image == null || image.isEmpty()) {
             redirectAttributes.addFlashAttribute("flashType", "warning");
@@ -75,7 +66,7 @@ public class DiagnosisController {
             redirectAttributes.addFlashAttribute("flashType", "warning");
             redirectAttributes.addFlashAttribute(
                     "flashMessage",
-                    "Giai đoạn 3D chỉ kích hoạt YOLO26n-seg và YOLO26n-VMamba-seg."
+                    "Giai đoạn 3D chỉ kích hoạt YOLO26s-seg và YOLO26s-TSVM-FP32-seg."
             );
             return "redirect:/diagnose";
         }

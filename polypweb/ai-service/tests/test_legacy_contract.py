@@ -6,25 +6,25 @@ def test_01_legacy_health_still_works(app_client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["service"] == "polypvision-ai"
-    assert "checkpoint" in response.json()["models"]["YOLO26n-seg"]
+    assert "checkpoint" in response.json()["models"]["YOLO26s-seg"]
 
 
 def test_02_legacy_predict_keeps_multipart_fields(app_client):
     client, harness = app_client
     response = client.post(
         "/predict",
-        data={"modelType": "YOLO26n-seg"},
+        data={"modelType": "YOLO26s-seg"},
         files=upload(JPEG_BYTES),
     )
     assert response.status_code == 200
-    assert harness.call_order == ["YOLO26n-seg"]
+    assert harness.call_order == ["YOLO26s-seg"]
 
 
 def test_03_legacy_response_fields_are_unchanged(app_client):
     client, _ = app_client
     response = client.post(
         "/predict",
-        data={"modelType": "YOLO26n-seg"},
+        data={"modelType": "YOLO26s-seg"},
         files=upload(),
     )
     assert set(response.json()) == {
@@ -43,7 +43,7 @@ def test_03_legacy_response_fields_are_unchanged(app_client):
 
 def test_04_legacy_validation_keeps_fastapi_detail(app_client):
     client, _ = app_client
-    response = client.post("/predict", data={"modelType": "YOLO26n-seg"})
+    response = client.post("/predict", data={"modelType": "YOLO26s-seg"})
     assert response.status_code == 422
     assert set(response.json()) == {"detail"}
     assert isinstance(response.json()["detail"], list)

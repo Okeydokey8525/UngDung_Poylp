@@ -36,14 +36,14 @@ Map<String, Object?> modelsJson({Object? models}) => {
       models ??
       [
         {
-          'key': 'YOLO26n-seg',
-          'name': 'YOLO26n-seg',
+          'key': 'YOLO26s-seg',
+          'name': 'YOLO26s-seg',
           'family': 'baseline',
           'ready': true,
         },
         {
-          'key': 'YOLO26n-VMamba-seg',
-          'name': 'YOLO26n-seg + VMamba',
+          'key': 'YOLO26s-TSVM-FP32-seg',
+          'name': 'YOLO26s-seg + TSVM FP32',
           'family': 'vmamba',
           'ready': true,
         },
@@ -51,7 +51,7 @@ Map<String, Object?> modelsJson({Object? models}) => {
 };
 
 Map<String, Object?> modelResultJson({
-  String modelKey = 'YOLO26n-seg',
+  String modelKey = 'YOLO26s-seg',
   String family = 'baseline',
   bool detected = true,
   Object? confidence = 0.87,
@@ -102,7 +102,7 @@ Map<String, Object?> comparisonJson({Object? totalProcessingTimeMs = 90.0}) => {
   'originalHeight': 7,
   'totalProcessingTimeMs': totalProcessingTimeMs,
   'baseline': modelResultJson(),
-  'vmamba': modelResultJson(modelKey: 'YOLO26n-VMamba-seg', family: 'vmamba'),
+  'vmamba': modelResultJson(modelKey: 'YOLO26s-TSVM-FP32-seg', family: 'vmamba'),
   'warning': 'Chỉ phục vụ nghiên cứu.',
 };
 
@@ -368,8 +368,8 @@ void main() {
 
     test('24 parses comparison without inventing a winner', () {
       final result = AiComparisonResult.fromJson(comparisonJson());
-      expect(result.baseline.modelKey, 'YOLO26n-seg');
-      expect(result.vmamba.modelKey, 'YOLO26n-VMamba-seg');
+      expect(result.baseline.modelKey, 'YOLO26s-seg');
+      expect(result.vmamba.modelKey, 'YOLO26s-TSVM-FP32-seg');
     });
 
     test('25 rejects NaN confidence', () {
@@ -473,7 +473,7 @@ void main() {
 
     test('38 ignores additional response fields', () {
       final json = inferenceJson()..['futureField'] = {'safe': true};
-      expect(AiInferenceResult.fromJson(json).modelKey, 'YOLO26n-seg');
+      expect(AiInferenceResult.fromJson(json).modelKey, 'YOLO26s-seg');
     });
 
     test('39 reports a missing required field as invalid data', () {
@@ -640,12 +640,12 @@ void main() {
 
     test('62 inference sends image and modelKey multipart fields', () async {
       final fixture = _setup((_) => jsonBody(inferenceJson()));
-      await fixture.repository.infer(image: upload(), modelKey: 'YOLO26n-seg');
+      await fixture.repository.infer(image: upload(), modelKey: 'YOLO26s-seg');
       final request = fixture.adapter.requests.single;
       final form = request.data! as FormData;
       expect(request.path, '/api/v1/inference');
       expect(form.files.map((entry) => entry.key), ['image']);
-      expect(Map.fromEntries(form.fields)['modelKey'], 'YOLO26n-seg');
+      expect(Map.fromEntries(form.fields)['modelKey'], 'YOLO26s-seg');
     });
 
     test('63 comparison multipart contains only image', () async {
@@ -698,7 +698,7 @@ void main() {
         await fixture.repository.getHealth();
         await fixture.repository.infer(
           image: upload(),
-          modelKey: 'YOLO26n-seg',
+          modelKey: 'YOLO26s-seg',
         );
         await fixture.repository.compare(image: upload());
         final requests = fixture.adapter.requests;
@@ -757,7 +757,7 @@ void main() {
       );
       await fixture.repository.infer(
         image: upload(),
-        modelKey: 'YOLO26n-seg',
+        modelKey: 'YOLO26s-seg',
         onSendProgress: (sent, total) => progress.add((sent, total)),
       );
       expect(progress, isNotEmpty);
@@ -785,7 +785,7 @@ void main() {
         sizeBytes: 4,
         readBytes: () async => Uint8List.fromList(_jpegBytes),
       );
-      await fixture.repository.infer(image: unsafe, modelKey: 'YOLO26n-seg');
+      await fixture.repository.infer(image: unsafe, modelKey: 'YOLO26s-seg');
       final form = fixture.adapter.requests.single.data! as FormData;
       expect(form.files.single.value.filename, 'bad.jpg');
     });

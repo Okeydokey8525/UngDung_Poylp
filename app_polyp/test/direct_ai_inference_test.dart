@@ -58,14 +58,14 @@ AiModelsResponse _models({bool baseline = true, bool vmamba = true}) =>
       requestId: 'm4-models-request',
       models: [
         AiModelInfo(
-          key: 'YOLO26n-seg',
-          name: 'YOLO26n-seg',
+          key: 'YOLO26s-seg',
+          name: 'YOLO26s-seg',
           family: 'baseline',
           ready: baseline,
         ),
         AiModelInfo(
-          key: 'YOLO26n-VMamba-seg',
-          name: 'YOLO26n-seg + VMamba',
+          key: 'YOLO26s-TSVM-FP32-seg',
+          name: 'YOLO26s-seg + TSVM FP32',
           family: 'vmamba',
           ready: vmamba,
         ),
@@ -75,8 +75,8 @@ AiModelsResponse _models({bool baseline = true, bool vmamba = true}) =>
 AiInferenceResult _result({bool detected = true}) =>
     AiInferenceResult.fromJson({
       'requestId': 'm4-inference-request',
-      'modelKey': 'YOLO26n-seg',
-      'modelName': 'YOLO26n-seg',
+      'modelKey': 'YOLO26s-seg',
+      'modelName': 'YOLO26s-seg',
       'modelFamily': 'baseline',
       'detected': detected,
       'label': detected ? 'polyp' : null,
@@ -377,10 +377,10 @@ void main() {
       final repository = _FakeAiRepository()..models = _models(vmamba: false);
       await _pumpAnalyze(tester, repository: repository);
       final baseline = tester.widget<ChoiceChip>(
-        find.byKey(const Key('analysis-model-YOLO26n-seg')),
+        find.byKey(const Key('analysis-model-YOLO26s-seg')),
       );
       final vmamba = tester.widget<ChoiceChip>(
-        find.byKey(const Key('analysis-model-YOLO26n-VMamba-seg')),
+        find.byKey(const Key('analysis-model-YOLO26s-TSVM-FP32-seg')),
       );
       expect(baseline.onSelected, isNotNull);
       expect(vmamba.onSelected, isNull);
@@ -461,9 +461,9 @@ void main() {
         controller.synchronizeModels(_models().models);
         await controller.pickImage();
         await controller.analyze(
-          readyModelKeys: const {'YOLO26n-seg', 'YOLO26n-VMamba-seg'},
+          readyModelKeys: const {'YOLO26s-seg', 'YOLO26s-TSVM-FP32-seg'},
         );
-        expect(repository.lastModelKey, 'YOLO26n-seg');
+        expect(repository.lastModelKey, 'YOLO26s-seg');
         expect(repository.lastImage?.mimeType, 'image/png');
         expect(await repository.lastImage!.readBytes(), _pngBytes);
         expect(repository.lastCancelToken, isNotNull);
@@ -512,7 +512,7 @@ void main() {
       await tester.pump();
       await harness.container
           .read(directAnalysisControllerProvider.notifier)
-          .analyze(readyModelKeys: const {'YOLO26n-seg'});
+          .analyze(readyModelKeys: const {'YOLO26s-seg'});
       expect(repository.inferCalls, 1);
       completer.complete(_result());
       await tester.pumpAndSettle();
@@ -601,7 +601,7 @@ void main() {
     ) async {
       await _pumpAnalyze(tester);
       await _pickAndAnalyze(tester);
-      expect(find.text('YOLO26n-seg'), findsWidgets);
+      expect(find.text('YOLO26s-seg'), findsWidgets);
       expect(find.text('Độ tin cậy của dự đoán'), findsOneWidget);
       expect(find.text('93.4%'), findsOneWidget);
       expect(find.textContaining('Độ chính xác'), findsNothing);
@@ -731,7 +731,7 @@ void main() {
       await _pickAndAnalyze(tester);
       var state = harness.container.read(directAnalysisControllerProvider);
       expect(state.image, isNotNull);
-      expect(state.selectedModelKey, 'YOLO26n-seg');
+      expect(state.selectedModelKey, 'YOLO26s-seg');
       expect(find.text('Không thể kết nối dịch vụ AI.'), findsOneWidget);
       await tester.tap(find.byKey(const Key('direct-analysis-retry')));
       await tester.pumpAndSettle();

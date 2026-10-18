@@ -6,8 +6,8 @@ import java.util.Optional;
 public enum ModelFilterOption {
 
     ALL("ALL", null),
-    BASELINE("YOLO26n-seg", "YOLO26n-seg"),
-    VMAMBA("YOLO26n-VMamba-seg", "YOLO26n-VMamba-seg");
+    BASELINE("YOLO26s-seg", "YOLO26s-seg"),
+    VMAMBA("YOLO26s-TSVM-FP32-seg", "YOLO26s-TSVM-FP32-seg");
 
     private final String queryValue;
     private final String modelType;

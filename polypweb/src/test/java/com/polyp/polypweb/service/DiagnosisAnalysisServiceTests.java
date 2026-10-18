@@ -73,7 +73,7 @@ class DiagnosisAnalysisServiceTests {
 
         DiagnosisOperationException error = assertThrows(
                 DiagnosisOperationException.class,
-                () -> service.analyze(oversized, "YOLO26n-seg", "user-id")
+                () -> service.analyze(oversized, "YOLO26s-seg", "user-id")
         );
 
         assertEquals("FILE_TOO_LARGE", error.getCode());
@@ -91,7 +91,7 @@ class DiagnosisAnalysisServiceTests {
 
         DiagnosisOperationException error = assertThrows(
                 DiagnosisOperationException.class,
-                () -> service.analyze(text, "YOLO26n-seg", "user-id")
+                () -> service.analyze(text, "YOLO26s-seg", "user-id")
         );
 
         assertEquals("UNSUPPORTED_MEDIA_TYPE", error.getCode());
@@ -104,7 +104,7 @@ class DiagnosisAnalysisServiceTests {
 
         DiagnosisOperationException error = assertThrows(
                 DiagnosisOperationException.class,
-                () -> service.analyze(image, "YOLO26n-seg", "user-id")
+                () -> service.analyze(image, "YOLO26s-seg", "user-id")
         );
 
         assertEquals("INVALID_IMAGE", error.getCode());
@@ -113,19 +113,19 @@ class DiagnosisAnalysisServiceTests {
 
     @Test
     void successfulCreateStoresPrincipalUserAndCanonicalModel() {
-        AiPredictionResponse prediction = prediction("YOLO26n-seg");
+        AiPredictionResponse prediction = prediction("YOLO26s-seg");
         DiagnosisResultView saved = savedResult();
         when(storageService.storeOriginal(eq(image), any())).thenReturn("/media/original/id.jpg");
-        when(aiInferenceClient.predict(image, "YOLO26n-seg")).thenReturn(prediction);
+        when(aiInferenceClient.predict(image, "YOLO26s-seg")).thenReturn(prediction);
         when(storageService.storeResult(eq("overlay"), any())).thenReturn("/media/results/id_result.jpg");
         when(historyService.saveResult(any(), eq("user-id"))).thenReturn(saved);
 
-        DiagnosisResultView result = service.analyze(image, "YOLO26n-seg", "user-id");
+        DiagnosisResultView result = service.analyze(image, "YOLO26s-seg", "user-id");
 
         assertEquals(saved, result);
         ArgumentCaptor<DiagnosisResultView> resultCaptor = ArgumentCaptor.forClass(DiagnosisResultView.class);
         verify(historyService).saveResult(resultCaptor.capture(), eq("user-id"));
-        assertEquals("YOLO26n-seg", resultCaptor.getValue().getModelType());
+        assertEquals("YOLO26s-seg", resultCaptor.getValue().getModelType());
         assertEquals(62.4, resultCaptor.getValue().getConfidence(), 0.0001);
         assertEquals(2, resultCaptor.getValue().getMaskCount());
     }
@@ -133,12 +133,12 @@ class DiagnosisAnalysisServiceTests {
     @Test
     void inferenceFailureRollsBackOriginalAndNeverSavesDocument() {
         when(storageService.storeOriginal(eq(image), any())).thenReturn("/media/original/id.jpg");
-        when(aiInferenceClient.predict(image, "YOLO26n-seg"))
+        when(aiInferenceClient.predict(image, "YOLO26s-seg"))
                 .thenThrow(new AiServiceException("AI_SERVICE_UNAVAILABLE", "offline"));
 
         DiagnosisOperationException error = assertThrows(
                 DiagnosisOperationException.class,
-                () -> service.analyze(image, "YOLO26n-seg", "user-id")
+                () -> service.analyze(image, "YOLO26s-seg", "user-id")
         );
 
         assertEquals("AI_SERVICE_UNAVAILABLE", error.getCode());
@@ -149,12 +149,12 @@ class DiagnosisAnalysisServiceTests {
     @Test
     void timeoutMapsTo504AndRollsBackOriginal() {
         when(storageService.storeOriginal(eq(image), any())).thenReturn("/media/original/id.jpg");
-        when(aiInferenceClient.predict(image, "YOLO26n-seg"))
+        when(aiInferenceClient.predict(image, "YOLO26s-seg"))
                 .thenThrow(new AiServiceException("AI_SERVICE_TIMEOUT", "timeout"));
 
         DiagnosisOperationException error = assertThrows(
                 DiagnosisOperationException.class,
-                () -> service.analyze(image, "YOLO26n-seg", "user-id")
+                () -> service.analyze(image, "YOLO26s-seg", "user-id")
         );
 
         assertEquals(504, error.getStatus().value());
@@ -164,12 +164,12 @@ class DiagnosisAnalysisServiceTests {
     @Test
     void modelMismatchIsBlockedAndOriginalIsRolledBack() {
         when(storageService.storeOriginal(eq(image), any())).thenReturn("/media/original/id.jpg");
-        when(aiInferenceClient.predict(image, "YOLO26n-seg"))
-                .thenReturn(prediction("YOLO26n-VMamba-seg"));
+        when(aiInferenceClient.predict(image, "YOLO26s-seg"))
+                .thenReturn(prediction("YOLO26s-TSVM-FP32-seg"));
 
         DiagnosisOperationException error = assertThrows(
                 DiagnosisOperationException.class,
-                () -> service.analyze(image, "YOLO26n-seg", "user-id")
+                () -> service.analyze(image, "YOLO26s-seg", "user-id")
         );
 
         assertEquals("MODEL_RESPONSE_MISMATCH", error.getCode());
@@ -180,14 +180,14 @@ class DiagnosisAnalysisServiceTests {
     @Test
     void overlayStorageFailureRollsBackOriginal() {
         when(storageService.storeOriginal(eq(image), any())).thenReturn("/media/original/id.jpg");
-        when(aiInferenceClient.predict(image, "YOLO26n-seg"))
-                .thenReturn(prediction("YOLO26n-seg"));
+        when(aiInferenceClient.predict(image, "YOLO26s-seg"))
+                .thenReturn(prediction("YOLO26s-seg"));
         when(storageService.storeResult(eq("overlay"), any()))
                 .thenThrow(new StorageException("disk full"));
 
         assertThrows(
                 DiagnosisOperationException.class,
-                () -> service.analyze(image, "YOLO26n-seg", "user-id")
+                () -> service.analyze(image, "YOLO26s-seg", "user-id")
         );
 
         verify(storageService).deleteQuietly("/media/original/id.jpg");
@@ -197,8 +197,8 @@ class DiagnosisAnalysisServiceTests {
     @Test
     void mongoSaveFailureRollsBackBothFiles() {
         when(storageService.storeOriginal(eq(image), any())).thenReturn("/media/original/id.jpg");
-        when(aiInferenceClient.predict(image, "YOLO26n-seg"))
-                .thenReturn(prediction("YOLO26n-seg"));
+        when(aiInferenceClient.predict(image, "YOLO26s-seg"))
+                .thenReturn(prediction("YOLO26s-seg"));
         when(storageService.storeResult(eq("overlay"), any()))
                 .thenReturn("/media/results/id_result.jpg");
         when(historyService.saveResult(any(), eq("user-id")))
@@ -206,7 +206,7 @@ class DiagnosisAnalysisServiceTests {
 
         assertThrows(
                 DiagnosisOperationException.class,
-                () -> service.analyze(image, "YOLO26n-seg", "user-id")
+                () -> service.analyze(image, "YOLO26s-seg", "user-id")
         );
 
         verify(storageService).deleteQuietly("/media/results/id_result.jpg");
@@ -233,7 +233,7 @@ class DiagnosisAnalysisServiceTests {
                 "/diagnoses/diagnosis-1/original-image",
                 "/diagnoses/diagnosis-1/result-image",
                 "sample.jpg",
-                "YOLO26n-seg",
+                "YOLO26s-seg",
                 true,
                 "polyp",
                 62.4,

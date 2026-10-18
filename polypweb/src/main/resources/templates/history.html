@@ -64,10 +64,10 @@
                     <label for="historyModel">Mô hình</label>
                     <select class="form-select" id="historyModel" name="model">
                         <option value="ALL" th:selected="${filter.model == 'ALL'}">Tất cả</option>
-                        <option value="YOLO26n-seg"
-                                th:selected="${filter.model == 'YOLO26n-seg'}">YOLO26n-seg</option>
-                        <option value="YOLO26n-VMamba-seg"
-                                th:selected="${filter.model == 'YOLO26n-VMamba-seg'}">YOLO26n-VMamba-seg</option>
+                        <option value="YOLO26s-seg"
+                                th:selected="${filter.model == 'YOLO26s-seg'}">YOLO26s-seg</option>
+                        <option value="YOLO26s-TSVM-FP32-seg"
+                                th:selected="${filter.model == 'YOLO26s-TSVM-FP32-seg'}">YOLO26s-TSVM-FP32-seg</option>
                     </select>
                 </div>
                 <div class="filter-field">
@@ -157,7 +157,7 @@
                                 <div><strong th:text="${item.fileName}">case.jpg</strong><small th:text="${item.id}">id</small></div>
                             </div>
                         </td>
-                        <td><span class="model-pill" th:text="${item.modelType}">YOLO26n-seg</span></td>
+                        <td><span class="model-pill" th:text="${item.modelType}">YOLO26s-seg</span></td>
                         <td>
                             <span class="table-status detected" th:if="${item.detected}">
                                 <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i> Có phát hiện

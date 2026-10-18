@@ -6,14 +6,14 @@ const maxDiagnosisUploadBytes = 10 * 1024 * 1024;
 
 enum DiagnosisModelOption {
   baseline(
-    apiValue: 'YOLO26n-seg',
+    apiValue: 'YOLO26s-seg',
     category: 'Baseline',
-    description: 'Phiên bản nano ưu tiên tốc độ và tài nguyên tính toán thấp.',
+    description: 'Mô hình YOLO26s-seg cơ bản dùng đối chiếu thực nghiệm BG20.',
   ),
   vmamba(
-    apiValue: 'YOLO26n-VMamba-seg',
+    apiValue: 'YOLO26s-TSVM-FP32-seg',
     category: 'VMamba',
-    description: 'Biến thể nano tích hợp VMambaBlock ở feature map mức cao.',
+    description: 'YOLO26s-seg thay C2PSA bằng C2TSVMamba tại tầng 10 và suy luận FP32.',
   );
 
   const DiagnosisModelOption({

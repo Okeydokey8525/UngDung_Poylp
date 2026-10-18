@@ -12,7 +12,7 @@ from conftest import (
 )
 
 
-def infer(client, key="YOLO26n-seg", files=None):
+def infer(client, key="YOLO26s-seg", files=None):
     return client.post(
         "/api/v1/inference",
         data={"modelKey": key},
@@ -24,12 +24,12 @@ def test_10_valid_jpg_baseline(app_client):
     client, _ = app_client
     response = infer(client)
     assert response.status_code == 200
-    assert response.json()["modelKey"] == "YOLO26n-seg"
+    assert response.json()["modelKey"] == "YOLO26s-seg"
 
 
 def test_11_valid_jpg_vmamba(app_client):
     client, _ = app_client
-    response = infer(client, "YOLO26n-VMamba-seg")
+    response = infer(client, "YOLO26s-TSVM-FP32-seg")
     assert response.status_code == 200
     assert response.json()["modelFamily"] == "vmamba"
 
@@ -57,7 +57,7 @@ def test_14_overlay_base64_decodes_to_jpeg(app_client):
 
 def test_15_detected_false_keeps_complete_schema(app_client):
     client, harness = app_client
-    harness.overrides["YOLO26n-seg"] = {
+    harness.overrides["YOLO26s-seg"] = {
         "detected": False,
         "label": "should-not-leak",
         "confidence": 0.8,
@@ -79,7 +79,7 @@ def test_16_original_dimensions_are_correct(app_client):
 
 def test_17_model_key_is_canonical(app_client):
     client, _ = app_client
-    assert infer(client, "yolo26N-SEG").json()["modelKey"] == "YOLO26n-seg"
+    assert infer(client, "yolo26S-SEG").json()["modelKey"] == "YOLO26s-seg"
 
 
 def test_18_unknown_model(app_client):
@@ -91,7 +91,7 @@ def test_18_unknown_model(app_client):
 
 def test_19_model_unavailable(app_client):
     client, _ = app_client
-    set_unavailable("YOLO26n-seg")
+    set_unavailable("YOLO26s-seg")
     response = infer(client)
     assert response.status_code == 503
     assert response.json()["code"] == "MODEL_NOT_READY"

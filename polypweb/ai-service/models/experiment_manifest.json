@@ -1,0 +1,25 @@
+{
+  "experiment": "Kvasir BG20 20 seeds FP32",
+  "models": [
+    {
+      "model_key": "YOLO26s-seg",
+      "seed": 0,
+      "selection": "existing best.pt selected by Ultralytics box+mask fitness; not the max-mask summary epoch",
+      "source_run": "YOLOv26s-seg/Kvasir_BG20_Baseline_YOLO26s_seg_s0_w2",
+      "file": "yolo26s-seg-best.pt",
+      "sha256": "61ebd02851f5a12921ab10f64ade433c745f87aac91fd41a310cd00c7d2a3906",
+      "bytes": 23350941,
+      "inference_precision": "float32"
+    },
+    {
+      "model_key": "YOLO26s-TSVM-FP32-seg",
+      "seed": 0,
+      "selection": "existing best.pt selected by Ultralytics box+mask fitness; not the max-mask summary epoch",
+      "source_run": "Kvasir_BG20_YOLO26s_seg_TSVM_FP32/Kvasir_BG20_YOLO26s_seg_TSVM_FP32_s0_w2",
+      "file": "yolo26s-tsvm-fp32-best.pt",
+      "sha256": "b0578c7612e1e48cc490ef71eca5f025fb1eeb5a02c1fe6cb7e869d639e2c7a8",
+      "bytes": 49669130,
+      "inference_precision": "float32"
+    }
+  ]
+}

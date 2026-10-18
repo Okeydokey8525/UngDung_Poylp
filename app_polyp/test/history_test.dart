@@ -114,7 +114,7 @@ void main() {
         {
           'id': 'd-1',
           'fileName': 'sample.jpg',
-          'modelType': 'YOLO26n-seg',
+          'modelType': 'YOLO26s-seg',
           'modelCategory': 'BASELINE',
           'detected': true,
           'confidence': 0.62,
@@ -280,12 +280,12 @@ void main() {
   test('M6 11 refresh preserves the active filter', () async {
     final api = FakeHistoryApi();
     final container = historyContainer(api);
-    const filter = DiagnosisHistoryFilter(model: 'YOLO26n-seg', sort: 'oldest');
+    const filter = DiagnosisHistoryFilter(model: 'YOLO26s-seg', sort: 'oldest');
     await container
         .read(diagnosisHistoryControllerProvider.notifier)
         .applyFilter(filter);
     await container.read(diagnosisHistoryControllerProvider.notifier).refresh();
-    expect(api.lastDiagnosisFilter?.model, 'YOLO26n-seg');
+    expect(api.lastDiagnosisFilter?.model, 'YOLO26s-seg');
     expect(api.lastDiagnosisFilter?.sort, 'oldest');
     expect(api.lastDiagnosisPage, 0);
   });
@@ -389,7 +389,7 @@ void main() {
     final api = FakeHistoryApi();
     final container = historyContainer(api);
     final filter = DiagnosisHistoryFilter(
-      model: 'YOLO26n-VMamba-seg',
+      model: 'YOLO26s-TSVM-FP32-seg',
       detected: 'false',
       dateFrom: DateTime(2026, 7, 1),
       dateTo: DateTime(2026, 7, 31),
@@ -763,7 +763,7 @@ void main() {
     await HistoryApi(client, CsrfController(client)).getDiagnoses(
       DiagnosisHistoryFilter(
         keyword: 'scope & polyp',
-        model: 'YOLO26n-VMamba-seg',
+        model: 'YOLO26s-TSVM-FP32-seg',
         dateFrom: DateTime(2026, 8, 1),
         sort: 'confidence-desc',
         size: 20,
@@ -774,7 +774,7 @@ void main() {
     expect(uri.path, '/api/v1/diagnoses');
     expect(uri.query, contains('keyword=scope+%26+polyp'));
     expect(uri.queryParameters['keyword'], 'scope & polyp');
-    expect(uri.queryParameters['model'], 'YOLO26n-VMamba-seg');
+    expect(uri.queryParameters['model'], 'YOLO26s-TSVM-FP32-seg');
     expect(uri.queryParameters['dateFrom'], '2026-08-01');
     expect(uri.queryParameters['page'], '2');
   });

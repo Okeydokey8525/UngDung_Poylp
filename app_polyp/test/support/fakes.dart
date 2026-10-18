@@ -42,7 +42,7 @@ UserDashboard testDashboard() => UserDashboard(
     averageDetectedConfidence: 0.624,
     totalMaskCount: 7,
     detectedRate: 0.8,
-    mostUsedModel: 'YOLO26n-seg',
+    mostUsedModel: 'YOLO26s-seg',
   ),
   dailyUsage: [
     DailyUsage(date: DateTime(2026, 7, 25), count: 0),
@@ -60,7 +60,7 @@ UserDashboard testDashboard() => UserDashboard(
       id: 'diagnosis-1',
       type: RecentActivityType.diagnosis,
       fileName: 'sample.jpg',
-      modelType: 'YOLO26n-seg',
+      modelType: 'YOLO26s-seg',
       detected: true,
       confidence: 0.624,
       maskCount: 2,
@@ -88,7 +88,7 @@ const emptyDashboard = UserDashboard(
 
 DiagnosisResult testDiagnosisResult({
   String id = 'diagnosis-1',
-  String modelType = 'YOLO26n-seg',
+  String modelType = 'YOLO26s-seg',
   String modelCategory = 'BASELINE',
 }) => DiagnosisResult(
   id: id,
@@ -115,7 +115,7 @@ ComparisonResult testComparisonResult({
   originalImageUrl: '/api/v1/diagnoses/baseline-id/images/original',
   baseline: const ComparisonModelResult(
     id: 'baseline-id',
-    modelType: 'YOLO26n-seg',
+    modelType: 'YOLO26s-seg',
     modelCategory: 'BASELINE',
     detected: true,
     label: 'polyp',
@@ -126,7 +126,7 @@ ComparisonResult testComparisonResult({
   ),
   vmamba: const ComparisonModelResult(
     id: 'vmamba-id',
-    modelType: 'YOLO26n-VMamba-seg',
+    modelType: 'YOLO26s-TSVM-FP32-seg',
     modelCategory: 'VMAMBA',
     detected: true,
     label: 'polyp',
@@ -145,7 +145,7 @@ DiagnosisHistoryItem testDiagnosisHistoryItem({
 }) => DiagnosisHistoryItem(
   id: id,
   fileName: fileName,
-  modelType: 'YOLO26n-seg',
+  modelType: 'YOLO26s-seg',
   modelCategory: 'BASELINE',
   detected: true,
   label: 'polyp',

@@ -35,33 +35,35 @@ from mobile_routes import MobileApiError, create_mobile_router
 PIL_IMAGE_OPEN = Image.open
 
 BASE_DIR = Path(__file__).resolve().parent
-VMAMBA_MODULE_PATH = BASE_DIR / "custom_ultralytics" / "vmamba.py"
+VMAMBA_MODULE_PATH = BASE_DIR / "custom_ultralytics" / "topology_shape_vmamba.py"
 
 
 def register_vmamba_module() -> None:
-    """Register the vendored custom class at the module path stored in the checkpoint."""
+    """Register the exact TSVM classes referenced by the FP32 experiment checkpoint."""
     import ultralytics.nn.modules as modules_package
+    import ultralytics.nn.tasks as tasks_package
 
-    module_name = "ultralytics.nn.modules.vmamba"
+    module_name = "ultralytics.nn.modules.topology_shape_vmamba"
     if module_name in sys.modules:
-        return
-    if not VMAMBA_MODULE_PATH.is_file():
-        raise RuntimeError(f"VMamba module was not found: {VMAMBA_MODULE_PATH}")
-
-    module_spec = importlib.util.spec_from_file_location(module_name, VMAMBA_MODULE_PATH)
-    if module_spec is None or module_spec.loader is None:
-        raise RuntimeError("Could not create the VMamba module specification")
-
-    vmamba_module = importlib.util.module_from_spec(module_spec)
-    sys.modules[module_name] = vmamba_module
-    try:
-        module_spec.loader.exec_module(vmamba_module)
-    except Exception:
-        sys.modules.pop(module_name, None)
-        raise
-
-    setattr(modules_package, "vmamba", vmamba_module)
-    setattr(modules_package, "VMambaBlock", vmamba_module.VMambaBlock)
+        tsvm_module = sys.modules[module_name]
+    else:
+        if not VMAMBA_MODULE_PATH.is_file():
+            raise RuntimeError(f"TSVM module was not found: {VMAMBA_MODULE_PATH}")
+        spec = importlib.util.spec_from_file_location(module_name, VMAMBA_MODULE_PATH)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("Could not create the TSVM module specification")
+        tsvm_module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = tsvm_module
+        try:
+            spec.loader.exec_module(tsvm_module)
+        except Exception:
+            sys.modules.pop(module_name, None)
+            raise
+    setattr(modules_package, "topology_shape_vmamba", tsvm_module)
+    for name in ("C2TSVMamba", "TSVMamba", "SS2D", "ShapeAwareBranch",
+                 "DirectionalShapeExtractor", "TopologyShapeGate"):
+        setattr(modules_package, name, getattr(tsvm_module, name))
+        setattr(tasks_package, name, getattr(tsvm_module, name))
 
 
 VMAMBA_MODULE_ERROR: str | None = None
@@ -130,13 +132,13 @@ class ModelRuntime:
 
 
 MODEL_CONFIG: dict[str, ModelConfig] = {
-    "YOLO26n-seg": ModelConfig(
+    "YOLO26s-seg": ModelConfig(
         path=Path(
             os.getenv(
                 "AI_BASELINE_MODEL_PATH",
                 os.getenv(
                     "AI_MODEL_PATH",
-                    str(BASE_DIR / "models" / "yolo26n-seg-best.pt"),
+                    str(BASE_DIR / "models" / "yolo26s-seg-best.pt"),
                 ),
             )
         )
@@ -144,11 +146,11 @@ MODEL_CONFIG: dict[str, ModelConfig] = {
         .resolve(),
         family="baseline",
     ),
-    "YOLO26n-VMamba-seg": ModelConfig(
+    "YOLO26s-TSVM-FP32-seg": ModelConfig(
         path=Path(
             os.getenv(
                 "AI_VMAMBA_MODEL_PATH",
-                str(BASE_DIR / "models" / "yolo26n-vmamba-seg-best.pt"),
+                str(BASE_DIR / "models" / "yolo26s-tsvm-fp32-best.pt"),
             )
         )
         .expanduser()
@@ -220,6 +222,11 @@ def load_model_runtime(
             raise RuntimeError("checkpoint class names do not contain 'polyp'")
 
         model.to(device)
+        model.model.float()  # Preserve FP32 for the TSVM state-space and BatchNorm path.
+        if config.family == "vmamba" and not any(
+            type(layer).__name__ == "C2TSVMamba" for layer in model.model.modules()
+        ):
+            raise RuntimeError("research checkpoint does not contain C2TSVMamba")
         runtime.model = model
         runtime.checkpoint_sha256 = file_sha256(config.path)
         runtime.status = "ready"
@@ -266,7 +273,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="PolypVision AI API",
-    description="Real baseline and VMamba segmentation service for PolypVision stage 3D.",
+    description="YOLO26s-seg and Topology-Shape-aware VMamba FP32 segmentation service.",
     version="0.3.0",
     lifespan=lifespan,
 )
@@ -459,10 +466,11 @@ def run_inference(
     input_array = np.asarray(decoded_image)
     inference_started = perf_counter()
     results = model.predict(
-        source=input_array,
+        source=decoded_image,  # PIL preserves RGB; ndarray inputs are interpreted as BGR.
         conf=CONFIDENCE_THRESHOLD,
         imgsz=INFERENCE_IMAGE_SIZE,
         device=device,
+        half=False,
         verbose=False,
     )
     inference_time_ms = (perf_counter() - inference_started) * 1000

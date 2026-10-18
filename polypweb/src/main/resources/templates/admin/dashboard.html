@@ -58,8 +58,8 @@
                 <article class="dashboard-kpi-card"><span>Tổng history</span><strong th:text="${#numbers.formatInteger(dashboard.totalHistory, 1, 'POINT')}">0</strong><small>Tổng document hợp lệ</small></article>
                 <article class="dashboard-kpi-card"><span>Phân tích đơn</span><strong th:text="${dashboard.singleAnalysis}">0</strong><small>comparisonResult khác true</small></article>
                 <article class="dashboard-kpi-card"><span>Phiên so sánh</span><strong th:text="${dashboard.comparisonSessions}">0</strong><small>Distinct group đủ hai model</small></article>
-                <article class="dashboard-kpi-card"><span>Baseline</span><strong th:text="${dashboard.baselineUsage}">0</strong><small>YOLO26n-seg</small></article>
-                <article class="dashboard-kpi-card"><span>VMamba</span><strong th:text="${dashboard.vmambaUsage}">0</strong><small>YOLO26n-VMamba-seg</small></article>
+                <article class="dashboard-kpi-card"><span>Baseline</span><strong th:text="${dashboard.baselineUsage}">0</strong><small>YOLO26s-seg</small></article>
+                <article class="dashboard-kpi-card"><span>VMamba</span><strong th:text="${dashboard.vmambaUsage}">0</strong><small>YOLO26s-TSVM-FP32-seg</small></article>
                 <article class="dashboard-kpi-card"><span>Có phát hiện</span><strong th:text="${dashboard.detected}">0</strong><small>Kết quả detected=true</small></article>
                 <article class="dashboard-kpi-card"><span>Không phát hiện</span><strong th:text="${dashboard.notDetected}">0</strong><small>Kết quả detected=false</small></article>
                 <article class="dashboard-kpi-card"><span>AI trung bình</span><strong th:text="${#numbers.formatDecimal(dashboard.averageProcessingTimeMs, 1, 1)}">0,0</strong><small>Milliseconds mỗi inference</small></article>
@@ -89,7 +89,7 @@
                     </div>
                     <div>
                         <span th:text="${model.family}">Baseline</span>
-                        <h3 th:text="${model.name}">YOLO26n-seg</h3>
+                        <h3 th:text="${model.name}">YOLO26s-seg</h3>
                         <p>
                             <strong th:text="${model.status}">Sẵn sàng</strong>
                             <span th:text="${' · Thiết bị: ' + dashboard.aiHealth.device}"> · Thiết bị: cpu</span>
@@ -164,7 +164,7 @@
                 <div class="dashboard-simple-list" th:if="${!#lists.isEmpty(dashboard.recentActivities)}">
                     <article th:each="activity : ${dashboard.recentActivities}">
                         <div class="dashboard-list-icon"><i class="bi bi-cpu" aria-hidden="true"></i></div>
-                        <div><h3 th:text="${activity.modelLabel}">YOLO26n-seg</h3><p><span th:text="${activity.userDisplay}">Người dùng</span> · <span th:text="${activity.activityType}">Phân tích đơn</span></p></div>
+                        <div><h3 th:text="${activity.modelLabel}">YOLO26s-seg</h3><p><span th:text="${activity.userDisplay}">Người dùng</span> · <span th:text="${activity.activityType}">Phân tích đơn</span></p></div>
                         <div class="dashboard-list-end"><span th:text="${activity.detected ? 'Có phát hiện' : 'Không phát hiện'}">Có phát hiện</span><time th:if="${activity.createdAt != null}" th:text="${#temporals.format(activity.createdAt, 'HH:mm · dd/MM')}">09:30 · 26/07</time></div>
                     </article>
                 </div>

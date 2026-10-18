@@ -46,13 +46,13 @@
                 <div class="comparison-model-header">
                     <div>
                         <span class="model-family-badge baseline">Baseline</span>
-                        <h2 th:text="${comparison.baselineResult.modelType}">YOLO26n-seg</h2>
+                        <h2 th:text="${comparison.baselineResult.modelType}">YOLO26s-seg</h2>
                     </div>
                     <span class="model-ready"><span class="status-dot"></span> Hoàn tất</span>
                 </div>
                 <div class="result-image-real-wrap">
                     <img class="result-image-real" th:src="${comparison.baselineResult.resultImageUrl}"
-                         alt="Overlay phân đoạn của YOLO26n-seg">
+                         alt="Overlay phân đoạn của YOLO26s-seg">
                 </div>
                 <div class="comparison-metrics">
                     <div><span>Phát hiện</span><strong th:text="${comparison.baselineResult.detected ? 'Có vùng nghi ngờ' : 'Không phát hiện'}">Có</strong></div>
@@ -67,13 +67,13 @@
                 <div class="comparison-model-header">
                     <div>
                         <span class="model-family-badge vmamba">VMamba</span>
-                        <h2 th:text="${comparison.vmambaResult.modelType}">YOLO26n-VMamba-seg</h2>
+                        <h2 th:text="${comparison.vmambaResult.modelType}">YOLO26s-TSVM-FP32-seg</h2>
                     </div>
                     <span class="model-ready"><span class="status-dot"></span> Hoàn tất</span>
                 </div>
                 <div class="result-image-real-wrap">
                     <img class="result-image-real" th:src="${comparison.vmambaResult.resultImageUrl}"
-                         alt="Overlay phân đoạn của YOLO26n-VMamba-seg">
+                         alt="Overlay phân đoạn của YOLO26s-TSVM-FP32-seg">
                 </div>
                 <div class="comparison-metrics">
                     <div><span>Phát hiện</span><strong th:text="${comparison.vmambaResult.detected ? 'Có vùng nghi ngờ' : 'Không phát hiện'}">Có</strong></div>
@@ -93,7 +93,7 @@
                 <table class="table comparison-table align-middle">
                     <thead><tr><th scope="col">Chỉ số</th><th scope="col">Baseline</th><th scope="col">VMamba</th></tr></thead>
                     <tbody>
-                    <tr><th scope="row">Model</th><td th:text="${comparison.baselineResult.modelType}">YOLO26n-seg</td><td th:text="${comparison.vmambaResult.modelType}">YOLO26n-VMamba-seg</td></tr>
+                    <tr><th scope="row">Model</th><td th:text="${comparison.baselineResult.modelType}">YOLO26s-seg</td><td th:text="${comparison.vmambaResult.modelType}">YOLO26s-TSVM-FP32-seg</td></tr>
                     <tr><th scope="row">Phát hiện</th><td th:text="${comparison.baselineResult.detected ? 'Có' : 'Không'}">Có</td><td th:text="${comparison.vmambaResult.detected ? 'Có' : 'Không'}">Có</td></tr>
                     <tr><th scope="row">Confidence cao nhất</th><td th:text="${#numbers.formatDecimal(comparison.baselineResult.confidence, 1, 1) + '%'}">80%</td><td th:text="${#numbers.formatDecimal(comparison.vmambaResult.confidence, 1, 1) + '%'}">80%</td></tr>
                     <tr><th scope="row">Số vùng mask</th><td th:text="${comparison.baselineResult.maskCount}">1</td><td th:text="${comparison.vmambaResult.maskCount}">1</td></tr>

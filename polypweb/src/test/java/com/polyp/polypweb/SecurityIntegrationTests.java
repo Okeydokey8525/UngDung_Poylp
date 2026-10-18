@@ -472,7 +472,7 @@ class SecurityIntegrationTests {
     void historyPaginationRendersCurrentRangeAndPreservesFilters() throws Exception {
         DiagnosisResultView item = resultView(
                 "diagnosis-a",
-                "YOLO26n-seg",
+                "YOLO26s-seg",
                 null,
                 LocalDateTime.now()
         );
@@ -488,7 +488,7 @@ class SecurityIntegrationTests {
                         .param("page", "1")
                         .param("size", "10")
                         .param("keyword", "kvasir")
-                        .param("model", "YOLO26n-seg")
+                        .param("model", "YOLO26s-seg")
                         .param("detected", "true")
                         .param("sort", "oldest"))
                 .andExpect(status().isOk())
@@ -496,7 +496,7 @@ class SecurityIntegrationTests {
                         containsString("Hiển thị 11–11 trong tổng số 21 kết quả")
                 ))
                 .andExpect(content().string(containsString("keyword=kvasir")))
-                .andExpect(content().string(containsString("model=YOLO26n-seg")))
+                .andExpect(content().string(containsString("model=YOLO26s-seg")))
                 .andExpect(content().string(containsString("sort=oldest")));
     }
 
@@ -580,7 +580,7 @@ class SecurityIntegrationTests {
                 ))
                 .andExpect(header().string(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        containsString("polypvision_yolo26n-seg_diagnosis-a_original.jpg")
+                        containsString("polypvision_yolo26s-seg_diagnosis-a_original.jpg")
                 ))
                 .andExpect(header().string(
                         HttpHeaders.CONTENT_DISPOSITION,
@@ -719,7 +719,7 @@ class SecurityIntegrationTests {
         DiagnosisHistory history = new DiagnosisHistory(
                 ownerId,
                 "sample.jpg",
-                "YOLO26n-seg",
+                "YOLO26s-seg",
                 true,
                 "polyp",
                 90,
@@ -739,13 +739,13 @@ class SecurityIntegrationTests {
         LocalDateTime createdAt = LocalDateTime.now();
         DiagnosisResultView baseline = resultView(
                 "baseline-id",
-                "YOLO26n-seg",
+                "YOLO26s-seg",
                 groupId,
                 createdAt
         );
         DiagnosisResultView vmamba = resultView(
                 "vmamba-id",
-                "YOLO26n-VMamba-seg",
+                "YOLO26s-TSVM-FP32-seg",
                 groupId,
                 createdAt
         );

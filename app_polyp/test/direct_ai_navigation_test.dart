@@ -37,13 +37,13 @@ AiModelsResponse _models({bool vmambaReady = true}) => AiModelsResponse(
   requestId: 'm3-models-request',
   models: [
     const AiModelInfo(
-      key: 'YOLO26n-seg',
+      key: 'YOLO26s-seg',
       name: 'Baseline từ provider',
       family: 'baseline',
       ready: true,
     ),
     AiModelInfo(
-      key: 'YOLO26n-VMamba-seg',
+      key: 'YOLO26s-TSVM-FP32-seg',
       name: 'VMamba từ provider',
       family: 'vmamba',
       ready: vmambaReady,
@@ -236,7 +236,7 @@ void main() {
           findsOneWidget,
         );
         expect(
-          find.textContaining('YOLO26n-seg và mô hình tích hợp VMamba'),
+          find.textContaining('YOLO26s-seg và mô hình tích hợp VMamba'),
           findsOneWidget,
         );
         expect(find.byKey(const Key('home-analyze-cta')), findsOneWidget);

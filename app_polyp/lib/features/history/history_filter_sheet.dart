@@ -49,8 +49,8 @@ class _DiagnosisFilterSheetState extends State<_DiagnosisFilterSheet> {
         value: value.model,
         values: const {
           'ALL': 'Tất cả mô hình',
-          'YOLO26n-seg': 'YOLO26n-seg',
-          'YOLO26n-VMamba-seg': 'YOLO26n-VMamba-seg',
+          'YOLO26s-seg': 'YOLO26s-seg',
+          'YOLO26s-TSVM-FP32-seg': 'YOLO26s-TSVM-FP32-seg',
         },
         onChanged: (next) =>
             setState(() => value = value.copyWith(model: next)),

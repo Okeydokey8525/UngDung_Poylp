@@ -196,9 +196,9 @@ class ApiComparisonIntegrationTests {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.comparisonGroupId").value(GROUP_ID))
-                .andExpect(jsonPath("$.baseline.modelType").value("YOLO26n-seg"))
+                .andExpect(jsonPath("$.baseline.modelType").value("YOLO26s-seg"))
                 .andExpect(jsonPath("$.baseline.modelCategory").value("BASELINE"))
-                .andExpect(jsonPath("$.vmamba.modelType").value("YOLO26n-VMamba-seg"))
+                .andExpect(jsonPath("$.vmamba.modelType").value("YOLO26s-TSVM-FP32-seg"))
                 .andExpect(jsonPath("$.vmamba.modelCategory").value("VMAMBA"))
                 .andExpect(jsonPath("$.totalProcessingTimeMs").value(322.7))
                 .andExpect(jsonPath("$.originalImageUrl")
@@ -284,7 +284,7 @@ class ApiComparisonIntegrationTests {
                         .with(user(principal)))
                 .andExpect(status().isOk())
                 .andExpect(header().doesNotExist("Content-Disposition"))
-                .andExpect(jsonPath("$.baseline.modelType").value("YOLO26n-seg"))
+                .andExpect(jsonPath("$.baseline.modelType").value("YOLO26s-seg"))
                 .andExpect(content().string(not(containsString("winner"))))
                 .andExpect(content().string(not(containsString("userId"))))
                 .andExpect(content().string(not(containsString("/media/"))));
@@ -355,8 +355,8 @@ class ApiComparisonIntegrationTests {
         LocalDateTime createdAt = LocalDateTime.of(2026, 8, 1, 10, 0);
         return new ComparisonResultView(
                 GROUP_ID,
-                result("baseline-id", "YOLO26n-seg", 62.4, 148.5, createdAt),
-                result("vmamba-id", "YOLO26n-VMamba-seg", 67, 174.2, createdAt),
+                result("baseline-id", "YOLO26s-seg", 62.4, 148.5, createdAt),
+                result("vmamba-id", "YOLO26s-TSVM-FP32-seg", 67, 174.2, createdAt),
                 "/media/original/shared.jpg",
                 "sample.jpg",
                 createdAt

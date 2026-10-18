@@ -30,8 +30,8 @@ import java.util.UUID;
 @Service
 public class ModelComparisonService {
 
-    public static final String BASELINE_MODEL = "YOLO26n-seg";
-    public static final String VMAMBA_MODEL = "YOLO26n-VMamba-seg";
+    public static final String BASELINE_MODEL = "YOLO26s-seg";
+    public static final String VMAMBA_MODEL = "YOLO26s-TSVM-FP32-seg";
     private static final List<String> REQUIRED_MODELS = List.of(BASELINE_MODEL, VMAMBA_MODEL);
     private static final Logger LOGGER = LoggerFactory.getLogger(ModelComparisonService.class);
 

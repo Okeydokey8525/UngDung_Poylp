@@ -15,7 +15,7 @@ Tài liệu FastAPI: [ai-service/README.md](ai-service/README.md). Tổng quan t
 
 - Đăng ký, đăng nhập, đăng xuất; vai trò `USER` và `ADMIN`.
 - Dashboard người dùng và dashboard quản trị.
-- Phân tích ảnh bằng `YOLO26n-seg` hoặc `YOLO26n-VMamba-seg`.
+- Phân tích ảnh bằng `YOLO26s-seg` hoặc `YOLO26s-TSVM-FP32-seg`.
 - So sánh hai model trên cùng một ảnh.
 - Lưu ảnh gốc, overlay và metadata để xem lại sau restart.
 - Lịch sử phân tích và lịch sử so sánh; tìm kiếm, lọc, phân trang, xóa.
@@ -107,8 +107,8 @@ Spring Boot gọi đúng legacy contract:
 
 Model type hợp lệ:
 
-- `YOLO26n-seg`.
-- `YOLO26n-VMamba-seg`.
+- `YOLO26s-seg`.
+- `YOLO26s-TSVM-FP32-seg`.
 
 Chạy FastAPI local:
 

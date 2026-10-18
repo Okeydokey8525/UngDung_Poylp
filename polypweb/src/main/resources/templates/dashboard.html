@@ -155,12 +155,12 @@
                     </div>
                     <div class="distribution-chart" role="img" aria-label="Biểu đồ phân bố sử dụng hai mô hình">
                         <div class="distribution-row">
-                            <div><span class="chart-key baseline"></span><span>YOLO26n-seg</span><strong th:text="${dashboard.baselineUsage}">0</strong></div>
+                            <div><span class="chart-key baseline"></span><span>YOLO26s-seg</span><strong th:text="${dashboard.baselineUsage}">0</strong></div>
                             <div class="distribution-track"><span class="distribution-fill baseline"
                                   th:style="'--chart-value:' + ${dashboard.baselineRate} + '%'"></span></div>
                         </div>
                         <div class="distribution-row">
-                            <div><span class="chart-key vmamba"></span><span>YOLO26n-VMamba-seg</span><strong th:text="${dashboard.vmambaUsage}">0</strong></div>
+                            <div><span class="chart-key vmamba"></span><span>YOLO26s-TSVM-FP32-seg</span><strong th:text="${dashboard.vmambaUsage}">0</strong></div>
                             <div class="distribution-track"><span class="distribution-fill vmamba"
                                   th:style="'--chart-value:' + ${dashboard.vmambaRate} + '%'"></span></div>
                         </div>
@@ -168,8 +168,8 @@
                     <table class="visually-hidden">
                         <caption>Dữ liệu sử dụng theo mô hình</caption>
                         <tbody>
-                        <tr><th scope="row">YOLO26n-seg</th><td th:text="${dashboard.baselineUsage}">0</td></tr>
-                        <tr><th scope="row">YOLO26n-VMamba-seg</th><td th:text="${dashboard.vmambaUsage}">0</td></tr>
+                        <tr><th scope="row">YOLO26s-seg</th><td th:text="${dashboard.baselineUsage}">0</td></tr>
+                        <tr><th scope="row">YOLO26s-TSVM-FP32-seg</th><td th:text="${dashboard.vmambaUsage}">0</td></tr>
                         </tbody>
                     </table>
                 </article>
@@ -230,7 +230,7 @@
                             </time>
                         </div>
                         <div class="dashboard-activity-meta">
-                            <span><i class="bi bi-cpu" aria-hidden="true"></i><span th:text="${activity.modelLabel}">YOLO26n-seg</span></span>
+                            <span><i class="bi bi-cpu" aria-hidden="true"></i><span th:text="${activity.modelLabel}">YOLO26s-seg</span></span>
                             <span class="activity-family" th:text="${activity.familyLabel}">Baseline</span>
                             <span th:classappend="${activity.detected ? ' detected' : ' clear'}">
                                 <i class="bi" th:classappend="${activity.detected ? 'bi-check2-circle' : 'bi-dash-circle'}"

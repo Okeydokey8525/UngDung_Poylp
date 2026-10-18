@@ -127,7 +127,7 @@ class OwnershipServiceTests {
                 "/media/original/" + id() + ".jpg",
                 "/media/results/" + id() + "_result.jpg",
                 "sample.jpg",
-                "YOLO26n-seg",
+                "YOLO26s-seg",
                 true,
                 "polyp",
                 91,
@@ -166,7 +166,7 @@ class OwnershipServiceTests {
         DiagnosisHistory history = new DiagnosisHistory(
                 userId,
                 "sample.jpg",
-                "YOLO26n-seg",
+                "YOLO26s-seg",
                 true,
                 "polyp",
                 91,

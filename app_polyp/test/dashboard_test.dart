@@ -54,7 +54,7 @@ void main() {
         'averageDetectedConfidence': 0.624,
         'totalMaskCount': 7,
         'detectedRate': 0.8,
-        'mostUsedModel': 'YOLO26n-seg',
+        'mostUsedModel': 'YOLO26s-seg',
       },
       'dailyUsage': [
         {'date': '2026-07-31', 'count': 5},
@@ -66,7 +66,7 @@ void main() {
           'id': 'd-1',
           'type': 'DIAGNOSIS',
           'fileName': 'sample.jpg',
-          'modelType': 'YOLO26n-seg',
+          'modelType': 'YOLO26s-seg',
           'detected': true,
           'confidence': 0.624,
           'maskCount': 2,

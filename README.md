@@ -2,7 +2,7 @@
 
 > **Đề tài:** “Nghiên cứu phương pháp tích hợp VMamba vào mô hình YOLO26-seg trong phân đoạn polyp từ ảnh nội soi đại trực tràng.”
 
-PolypVision là hệ thống phục vụ nghiên cứu phân đoạn polyp trên ảnh nội soi đại trực tràng. Dự án cho phép chạy và so sánh mô hình baseline `YOLO26n-seg` với mô hình nghiên cứu `YOLO26n-VMamba-seg`, đồng thời cung cấp hai client độc lập: website Spring Boot và ứng dụng Flutter Mobile. FastAPI là dịch vụ AI inference dùng chung.
+PolypVision là hệ thống phục vụ nghiên cứu phân đoạn polyp trên ảnh nội soi đại trực tràng. Dự án cho phép chạy và so sánh mô hình baseline `YOLO26s-seg` với mô hình nghiên cứu `YOLO26s-TSVM-FP32-seg`, đồng thời cung cấp hai client độc lập: website Spring Boot và ứng dụng Flutter Mobile. FastAPI là dịch vụ AI inference dùng chung.
 
 > **Cảnh báo:** PolypVision không phải thiết bị y tế và không cung cấp chẩn đoán lâm sàng.
 
@@ -26,8 +26,8 @@ flowchart LR
     Web --> Storage["Image Storage"]
     Web --> AI["FastAPI AI Service"]
     Flutter["Flutter Mobile"] --> AI
-    AI --> Baseline["YOLO26n-seg"]
-    AI --> VMamba["YOLO26n-VMamba-seg"]
+    AI --> Baseline["YOLO26s-seg"]
+    AI --> VMamba["YOLO26s-TSVM-FP32-seg"]
 ```
 
 - Nhánh Web: `Browser → Spring Boot → FastAPI → AI Models`. Spring Boot quản lý tài khoản, session, CSRF, lịch sử, admin, MongoDB và file ảnh.
@@ -43,24 +43,20 @@ flowchart LR
 
 ### Baseline
 
-`YOLO26n-seg` là mô hình baseline cho bài toán instance segmentation.
+`YOLO26s-seg` là mô hình baseline cho bài toán instance segmentation.
 
 ### Mô hình nghiên cứu
 
-`YOLO26n-VMamba-seg` tích hợp một `VMambaBlock` vào feature maps của YOLO. Source hiện tại xác nhận block này:
+`YOLO26s-TSVM-FP32-seg` dùng đúng khối `C2TSVMamba` của thực nghiệm BG20, thay `C2PSA` tại layer 10. Khối kết hợp SS2D bốn hướng, nhánh hình dạng đa tỉ lệ và có hướng, cổng guidance `F_M * (1 + G)` và residual scaling. Mã được lưu tại `custom_ultralytics/topology_shape_vmamba.py` và đăng ký theo đường dẫn module trong checkpoint trước khi tải trọng số.
 
-- dùng cơ chế **VSS/SS2D-inspired four-direction selective scan**;
-- nằm sau `C2PSA` cuối của backbone trong checkpoint nghiên cứu;
-- giữ segmentation head của YOLO để tạo mask/overlay.
-
-Tên `VMambaBlock` trong dự án mô tả khối tích hợp phục vụ thí nghiệm. README không xem đây là bản cài đặt đầy đủ của Vision Mamba, không gọi là SegMamba và không khẳng định kiến trúc giống hệt một paper bên ngoài.
+Hai checkpoint mặc định lấy từ seed 0 của thực nghiệm YOLO26s-seg và TSVM FP32, cùng một seed để minh họa. `models/experiment_manifest.json` lưu nguồn và SHA-256. Việc chọn `best.pt` theo fitness của Ultralytics khác việc lấy epoch có mask mAP cao nhất trong bảng tổng hợp 20 seed. Ứng dụng ép mô hình về float32 và suy luận với `half=False`; không dùng lại trọng số TSVM cũ không có FP32.
 
 Hai model key/checkpoint mặc định trong registry:
 
 | Model key | Vai trò | Checkpoint mặc định |
 |---|---|---|
-| `YOLO26n-seg` | Baseline | `yolo26n-seg-best.pt` |
-| `YOLO26n-VMamba-seg` | Research model | `yolo26n-vmamba-seg-best.pt` |
+| `YOLO26s-seg` | Baseline | `yolo26s-seg-best.pt` |
+| `YOLO26s-TSVM-FP32-seg` | Research model | `yolo26s-tsvm-fp32-best.pt` |
 
 Checkpoint là artifact nghiên cứu cục bộ và không được commit vào Git.
 
@@ -260,9 +256,9 @@ flutter run -d <DEVICE_ID_FROM_FLUTTER_DEVICES> `
 
 | Biến | Mặc định | Vai trò |
 |---|---|---|
-| `AI_BASELINE_MODEL_PATH` | `models/yolo26n-seg-best.pt` | Checkpoint Baseline |
+| `AI_BASELINE_MODEL_PATH` | `models/yolo26s-seg-best.pt` | Checkpoint Baseline |
 | `AI_MODEL_PATH` | checkpoint Baseline mặc định | Fallback tương thích cho Baseline |
-| `AI_VMAMBA_MODEL_PATH` | `models/yolo26n-vmamba-seg-best.pt` | Checkpoint VMamba |
+| `AI_VMAMBA_MODEL_PATH` | `models/yolo26s-tsvm-fp32-best.pt` | Checkpoint VMamba |
 | `AI_DEVICE` | `auto` | Chọn `cpu`, `cuda:0` hoặc tự động |
 | `AI_CONFIDENCE_THRESHOLD` | `0.25` | Confidence threshold |
 | `AI_IMAGE_SIZE` | `640` | Kích thước inference |

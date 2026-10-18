@@ -105,7 +105,7 @@ class ApiDiagnosisIntegrationTests {
         account.setRole(UserRole.USER);
         account.setEnabled(true);
         principal = new CurrentUserPrincipal(account);
-        result = result("diagnosis-1", "YOLO26n-seg");
+        result = result("diagnosis-1", "YOLO26s-seg");
         history = history("diagnosis-1", "user-id", false);
         when(mongoHealthIndicator.health()).thenReturn(Health.up().build());
     }
@@ -114,7 +114,7 @@ class ApiDiagnosisIntegrationTests {
     void guestCreateReturnsJson401() throws Exception {
         mockMvc.perform(multipart("/api/v1/diagnoses")
                         .file("image", new byte[]{1})
-                        .param("modelType", "YOLO26n-seg")
+                        .param("modelType", "YOLO26s-seg")
                         .with(csrf()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -156,7 +156,7 @@ class ApiDiagnosisIntegrationTests {
                         .param("page", "-7")
                         .param("size", "999")
                         .param("keyword", "  sample  ")
-                        .param("model", "YOLO26n-seg")
+                        .param("model", "YOLO26s-seg")
                         .param("detected", "true")
                         .param("sort", "processing-desc")
                         .with(user(principal)))
@@ -168,7 +168,7 @@ class ApiDiagnosisIntegrationTests {
         org.junit.jupiter.api.Assertions.assertEquals(0, filter.getPageIndex());
         org.junit.jupiter.api.Assertions.assertEquals(10, filter.getPageSize());
         org.junit.jupiter.api.Assertions.assertEquals("sample", filter.getKeyword());
-        org.junit.jupiter.api.Assertions.assertEquals("YOLO26n-seg", filter.getModel());
+        org.junit.jupiter.api.Assertions.assertEquals("YOLO26s-seg", filter.getModel());
         org.junit.jupiter.api.Assertions.assertEquals("true", filter.getDetected());
         org.junit.jupiter.api.Assertions.assertEquals("processing-desc", filter.getSort());
     }
@@ -197,7 +197,7 @@ class ApiDiagnosisIntegrationTests {
     void createWithoutCsrfReturns403() throws Exception {
         mockMvc.perform(multipart("/api/v1/diagnoses")
                         .file("image", new byte[]{1})
-                        .param("modelType", "YOLO26n-seg")
+                        .param("modelType", "YOLO26s-seg")
                         .with(user(principal)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("CSRF_INVALID"));
@@ -205,14 +205,14 @@ class ApiDiagnosisIntegrationTests {
 
     @Test
     void validBaselineCreateReturns201AndSafeContract() throws Exception {
-        when(analysisService.analyze(any(), eq("YOLO26n-seg"), eq("user-id")))
+        when(analysisService.analyze(any(), eq("YOLO26s-seg"), eq("user-id")))
                 .thenReturn(result);
 
-        mockMvc.perform(createRequest("YOLO26n-seg"))
+        mockMvc.perform(createRequest("YOLO26s-seg"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.id").value("diagnosis-1"))
-                .andExpect(jsonPath("$.modelType").value("YOLO26n-seg"))
+                .andExpect(jsonPath("$.modelType").value("YOLO26s-seg"))
                 .andExpect(jsonPath("$.modelCategory").value("BASELINE"))
                 .andExpect(jsonPath("$.confidence").value(0.624))
                 .andExpect(jsonPath("$.originalImageUrl")
@@ -221,28 +221,28 @@ class ApiDiagnosisIntegrationTests {
 
     @Test
     void validVmambaCreateReturns201() throws Exception {
-        when(analysisService.analyze(any(), eq("YOLO26n-VMamba-seg"), eq("user-id")))
-                .thenReturn(result("diagnosis-2", "YOLO26n-VMamba-seg"));
+        when(analysisService.analyze(any(), eq("YOLO26s-TSVM-FP32-seg"), eq("user-id")))
+                .thenReturn(result("diagnosis-2", "YOLO26s-TSVM-FP32-seg"));
 
-        mockMvc.perform(createRequest("YOLO26n-VMamba-seg"))
+        mockMvc.perform(createRequest("YOLO26s-TSVM-FP32-seg"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.modelCategory").value("VMAMBA"));
     }
 
     @Test
     void createAlwaysUsesPrincipalAndIgnoresSubmittedUserId() throws Exception {
-        when(analysisService.analyze(any(), eq("YOLO26n-seg"), eq("user-id")))
+        when(analysisService.analyze(any(), eq("YOLO26s-seg"), eq("user-id")))
                 .thenReturn(result);
 
         mockMvc.perform(multipart("/api/v1/diagnoses")
                         .file("image", new byte[]{1})
-                        .param("modelType", "YOLO26n-seg")
+                        .param("modelType", "YOLO26s-seg")
                         .param("userId", "attacker-id")
                         .with(user(principal))
                         .with(csrf()))
                 .andExpect(status().isCreated());
 
-        verify(analysisService).analyze(any(), eq("YOLO26n-seg"), eq("user-id"));
+        verify(analysisService).analyze(any(), eq("YOLO26s-seg"), eq("user-id"));
         verify(analysisService, never()).analyze(any(), anyString(), eq("attacker-id"));
     }
 
@@ -250,7 +250,7 @@ class ApiDiagnosisIntegrationTests {
     void createResponseNeverLeaksInternalFields() throws Exception {
         when(analysisService.analyze(any(), anyString(), anyString())).thenReturn(result);
 
-        mockMvc.perform(createRequest("YOLO26n-seg"))
+        mockMvc.perform(createRequest("YOLO26s-seg"))
                 .andExpect(status().isCreated())
                 .andExpect(content().string(not(containsString("userId"))))
                 .andExpect(content().string(not(containsString("/media/"))))
@@ -265,42 +265,42 @@ class ApiDiagnosisIntegrationTests {
 
     @Test
     void emptyFileReturns400() throws Exception {
-        expectCreateFailure("EMPTY_FILE", 400, "YOLO26n-seg");
+        expectCreateFailure("EMPTY_FILE", 400, "YOLO26s-seg");
     }
 
     @Test
     void oversizedFileReturns413() throws Exception {
-        expectCreateFailure("FILE_TOO_LARGE", 413, "YOLO26n-seg");
+        expectCreateFailure("FILE_TOO_LARGE", 413, "YOLO26s-seg");
     }
 
     @Test
     void unsupportedMimeReturns415() throws Exception {
-        expectCreateFailure("UNSUPPORTED_MEDIA_TYPE", 415, "YOLO26n-seg");
+        expectCreateFailure("UNSUPPORTED_MEDIA_TYPE", 415, "YOLO26s-seg");
     }
 
     @Test
     void corruptImageReturns422() throws Exception {
-        expectCreateFailure("INVALID_IMAGE", 422, "YOLO26n-seg");
+        expectCreateFailure("INVALID_IMAGE", 422, "YOLO26s-seg");
     }
 
     @Test
     void aiUnavailableReturns503() throws Exception {
-        expectCreateFailure("AI_SERVICE_UNAVAILABLE", 503, "YOLO26n-seg");
+        expectCreateFailure("AI_SERVICE_UNAVAILABLE", 503, "YOLO26s-seg");
     }
 
     @Test
     void modelUnavailableReturns503() throws Exception {
-        expectCreateFailure("MODEL_UNAVAILABLE", 503, "YOLO26n-seg");
+        expectCreateFailure("MODEL_UNAVAILABLE", 503, "YOLO26s-seg");
     }
 
     @Test
     void aiTimeoutReturns504() throws Exception {
-        expectCreateFailure("AI_SERVICE_TIMEOUT", 504, "YOLO26n-seg");
+        expectCreateFailure("AI_SERVICE_TIMEOUT", 504, "YOLO26s-seg");
     }
 
     @Test
     void modelResponseMismatchReturns502() throws Exception {
-        expectCreateFailure("MODEL_RESPONSE_MISMATCH", 502, "YOLO26n-seg");
+        expectCreateFailure("MODEL_RESPONSE_MISMATCH", 502, "YOLO26s-seg");
     }
 
     @Test
@@ -496,12 +496,12 @@ class ApiDiagnosisIntegrationTests {
 
     @Test
     void webDiagnosisStillRedirectsToSavedResult() throws Exception {
-        when(analysisService.analyze(any(), eq("YOLO26n-seg"), eq("user-id")))
+        when(analysisService.analyze(any(), eq("YOLO26s-seg"), eq("user-id")))
                 .thenReturn(result);
 
         mockMvc.perform(multipart("/diagnose")
                         .file("image", new byte[]{1})
-                        .param("modelType", "yolo26n-seg")
+                        .param("modelType", "yolo26s-seg")
                         .with(user(principal))
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
@@ -555,7 +555,7 @@ class ApiDiagnosisIntegrationTests {
         DiagnosisHistory value = new DiagnosisHistory(
                 userId,
                 "sample.jpg",
-                "YOLO26n-seg",
+                "YOLO26s-seg",
                 true,
                 "polyp",
                 62.4,

@@ -66,8 +66,8 @@ public class AiInferenceClient {
     public AiHealthView dashboardHealth() {
         AiHealthResponse health = readHealth(healthTimeout);
         List<ModelHealthView> models = List.of(
-                dashboardModelHealth(health, "YOLO26n-seg", "Baseline"),
-                dashboardModelHealth(health, "YOLO26n-VMamba-seg", "VMamba")
+                dashboardModelHealth(health, "YOLO26s-seg", "Baseline"),
+                dashboardModelHealth(health, "YOLO26s-TSVM-FP32-seg", "VMamba")
         );
         String serviceStatus = "ok".equalsIgnoreCase(health.getStatus())
                 ? "Hoạt động"
@@ -81,8 +81,8 @@ public class AiInferenceClient {
     public AiServiceStatus serviceStatus() {
         AiHealthResponse health = readHealth(healthTimeout);
         return new AiServiceStatus(
-                isReady(health, "YOLO26n-seg"),
-                isReady(health, "YOLO26n-VMamba-seg")
+                isReady(health, "YOLO26s-seg"),
+                isReady(health, "YOLO26s-TSVM-FP32-seg")
         );
     }
 

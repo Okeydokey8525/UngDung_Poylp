@@ -27,7 +27,7 @@
                         <ul>
                             <li>Giao diện Spring Boot + Thymeleaf</li>
                             <li>Metadata lịch sử thật trong MongoDB</li>
-                            <li>Hai checkpoint YOLO26n đang chạy thật</li>
+                            <li>Hai checkpoint YOLO26s-seg và TSVM FP32</li>
                         </ul>
                     </div>
                 </div>
@@ -51,9 +51,9 @@
                 <article class="about-section" id="objective">
                     <span class="section-index">01</span>
                     <h2>Mục tiêu nghiên cứu</h2>
-                    <p>Nghiên cứu tập trung khảo sát phương pháp tích hợp VMambaBlock vào YOLO26-seg trong bài toán
+                    <p>Nghiên cứu tập trung khảo sát phương pháp tích hợp C2TSVMamba vào YOLO26-seg trong bài toán
                         phân đoạn polyp trên ảnh nội soi. Website hiện chạy thật cả checkpoint
-                        <code>YOLO26n-seg</code> và <code>YOLO26n-VMamba-seg</code> trên cùng API contract.</p>
+                        <code>YOLO26s-seg</code> và <code>YOLO26s-TSVM-FP32-seg</code> trên cùng API contract.</p>
                     <div class="problem-card">
                         <i class="bi bi-bullseye"></i>
                         <div>
@@ -75,7 +75,7 @@
                         </div>
                         <div>
                             <span class="model-kicker">Khối tích hợp</span>
-                            <h3>VMambaBlock</h3>
+                            <h3>C2TSVMamba</h3>
                             <p>Khối VSS/SS2D-inspired được nghiên cứu để khai thác phụ thuộc không gian dài hạn trên
                                 feature map mức cao.</p>
                         </div>
@@ -112,7 +112,7 @@
                         <span><i class="bi bi-filetype-html"></i> Thymeleaf</span>
                         <span><i class="bi bi-bootstrap"></i> Bootstrap 5</span>
                         <span><i class="bi bi-database"></i> MongoDB</span>
-                        <span><i class="bi bi-code-slash"></i> FastAPI + YOLO26n + VMamba</span>
+                        <span><i class="bi bi-code-slash"></i> FastAPI + YOLO26s + TSVM FP32</span>
                     </div>
                 </article>
 
@@ -121,8 +121,8 @@
                     <h2>Giới hạn của phiên bản</h2>
                     <ul class="limitation-list">
                         <li><i class="bi bi-dash-circle"></i><span>Ảnh gốc và overlay được lưu trong storage cục bộ; chưa có object storage hoặc cloud.</span></li>
-                        <li><i class="bi bi-dash-circle"></i><span>Chỉ kích hoạt hai checkpoint nano
-                            <code>YOLO26n-seg</code> và <code>YOLO26n-VMamba-seg</code>; tám cấu hình còn lại chưa được nối vào API.</span></li>
+                        <li><i class="bi bi-dash-circle"></i><span>Chỉ kích hoạt hai checkpoint small
+                            <code>YOLO26s-seg</code> và <code>YOLO26s-TSVM-FP32-seg</code>; tám cấu hình còn lại chưa được nối vào API.</span></li>
                         <li><i class="bi bi-dash-circle"></i><span>Đã có Spring Security và ownership; chưa có OAuth, JWT hoặc xác thực đa yếu tố.</span></li>
                         <li><i class="bi bi-dash-circle"></i><span>MongoDB chỉ lưu đường dẫn tương đối và metadata, không lưu chuỗi Base64.</span></li>
                     </ul>

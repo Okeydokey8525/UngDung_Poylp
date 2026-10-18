@@ -18,7 +18,7 @@
                 <div>
                     <span class="eyebrow">Mã lượt phân tích · <span th:text="${result.id}">PV-DEMO-001</span></span>
                     <div class="result-heading-line">
-                        <h1 th:text="${'Kết quả phân đoạn ' + result.modelType}">Kết quả phân đoạn YOLO26n-seg</h1>
+                        <h1 th:text="${'Kết quả phân đoạn ' + result.modelType}">Kết quả phân đoạn YOLO26s-seg</h1>
                         <span class="model-family-badge"
                               th:classappend="${vmambaModel ? ' vmamba' : ' baseline'}"
                               th:text="${vmambaModel ? 'VMamba' : 'Baseline'}">Baseline</span>
@@ -68,7 +68,7 @@
                     <img class="result-image-real"
                          th:src="${result.resultImageUrl}"
                          th:alt="${'Ảnh nội soi đã được ' + result.modelType + ' phủ mask phân đoạn'}">
-                    <span class="image-watermark" th:text="${result.modelType}">YOLO26n-seg</span>
+                    <span class="image-watermark" th:text="${result.modelType}">YOLO26s-seg</span>
                 </div>
                 <div class="result-image-unavailable"
                      th:unless="${result.resultImageUrl != null and !#strings.isEmpty(result.resultImageUrl)}">
@@ -91,7 +91,7 @@
                     <div class="result-info-grid">
                         <div class="info-item">
                             <span><i class="bi bi-cpu"></i> Mô hình sử dụng</span>
-                            <strong th:text="${result.modelType}">YOLO26m-VMamba-seg</strong>
+                            <strong th:text="${result.modelType}">YOLO26s-TSVM-FP32-seg</strong>
                         </div>
                         <div class="info-item">
                             <span><i class="bi bi-tag"></i> Nhãn</span>

@@ -131,7 +131,7 @@ class DashboardServiceTests {
 
         assertEquals(4, dashboard.getBaselineUsage());
         assertEquals(3, dashboard.getVmambaUsage());
-        assertEquals("YOLO26n-seg", dashboard.getMostUsedModel());
+        assertEquals("YOLO26s-seg", dashboard.getMostUsedModel());
     }
 
     @Test
@@ -139,7 +139,7 @@ class DashboardServiceTests {
         when(statisticsRepository.aggregate(USER_ID, 7)).thenReturn(statistics());
         List<DiagnosisHistory> recent = new ArrayList<>();
         for (int index = 0; index < 20; index++) {
-            recent.add(history("doc-" + index, USER_ID, null, false, "YOLO26n-seg"));
+            recent.add(history("doc-" + index, USER_ID, null, false, "YOLO26s-seg"));
         }
         when(historyRepository.findTop20ByUserIdOrderByCreatedAtDesc(USER_ID))
                 .thenReturn(recent);
@@ -155,8 +155,8 @@ class DashboardServiceTests {
         String groupId = UUID.randomUUID().toString();
         when(historyRepository.findTop20ByUserIdOrderByCreatedAtDesc(USER_ID))
                 .thenReturn(List.of(
-                        history("baseline", USER_ID, groupId, true, "YOLO26n-seg"),
-                        history("vmamba", USER_ID, groupId, true, "YOLO26n-VMamba-seg")
+                        history("baseline", USER_ID, groupId, true, "YOLO26s-seg"),
+                        history("vmamba", USER_ID, groupId, true, "YOLO26s-TSVM-FP32-seg")
                 ));
 
         UserDashboardView dashboard = service.userDashboard(USER_ID, "User A");
@@ -223,7 +223,7 @@ class DashboardServiceTests {
     void recentAdminActivitiesResolveUsersInOneBatch() {
         prepareAdminCounts();
         when(statisticsRepository.aggregate(null, 7)).thenReturn(statistics());
-        DiagnosisHistory history = history("doc-a", USER_ID, null, false, "YOLO26n-seg");
+        DiagnosisHistory history = history("doc-a", USER_ID, null, false, "YOLO26s-seg");
         when(historyRepository.findTop20ByOrderByCreatedAtDesc()).thenReturn(List.of(history));
         UserAccount account = account(USER_ID, "User A", "a@example.com");
         when(userAccountRepository.findAllById(any())).thenReturn(List.of(account));
@@ -267,9 +267,9 @@ class DashboardServiceTests {
                 "Hoạt động",
                 "cpu",
                 List.of(
-                        new ModelHealthView("YOLO26n-seg", "Baseline", "Sẵn sàng", true),
+                        new ModelHealthView("YOLO26s-seg", "Baseline", "Sẵn sàng", true),
                         new ModelHealthView(
-                                "YOLO26n-VMamba-seg",
+                                "YOLO26s-TSVM-FP32-seg",
                                 "VMamba",
                                 "Sẵn sàng",
                                 true

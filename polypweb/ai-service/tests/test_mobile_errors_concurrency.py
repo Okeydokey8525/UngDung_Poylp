@@ -10,7 +10,7 @@ from conftest import upload
 def infer(client):
     return client.post(
         "/api/v1/inference",
-        data={"modelKey": "YOLO26n-seg"},
+        data={"modelKey": "YOLO26s-seg"},
         files=upload(),
     )
 
@@ -31,7 +31,7 @@ def test_36_error_envelope_is_stable(app_client):
 
 def test_37_missing_field_uses_mobile_validation_envelope(app_client):
     client, _ = app_client
-    response = client.post("/api/v1/inference", data={"modelKey": "YOLO26n-seg"})
+    response = client.post("/api/v1/inference", data={"modelKey": "YOLO26s-seg"})
     assert response.status_code == 422
     assert response.json()["code"] == "VALIDATION_ERROR"
     assert "image" in response.json()["fieldErrors"]
@@ -113,9 +113,9 @@ def test_45_comparison_is_atomic_against_other_mobile_inference(app_client):
         assert comparison_future.result(timeout=3).status_code == 200
         assert inference_future.result(timeout=3).status_code == 200
     assert harness.call_order == [
-        "YOLO26n-seg",
-        "YOLO26n-VMamba-seg",
-        "YOLO26n-seg",
+        "YOLO26s-seg",
+        "YOLO26s-TSVM-FP32-seg",
+        "YOLO26s-seg",
     ]
 
 
@@ -150,7 +150,7 @@ def test_48_model_lock_is_released_after_inference_error(app_client):
     harness.failures_remaining = 1
     assert infer(client).status_code == 500
     assert infer(client).status_code == 200
-    runtime = main.app.state.models["YOLO26n-seg"]
+    runtime = main.app.state.models["YOLO26s-seg"]
     assert runtime.lock.locked() is False
 
 

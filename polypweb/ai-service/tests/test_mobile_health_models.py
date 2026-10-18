@@ -18,7 +18,7 @@ def test_06_mobile_health_hides_hash(app_client):
 
 def test_07_mobile_health_hides_raw_model_error(app_client):
     client, _ = app_client
-    set_unavailable("YOLO26n-VMamba-seg", "C:\\secret\\model.pt traceback")
+    set_unavailable("YOLO26s-TSVM-FP32-seg", "C:\\secret\\model.pt traceback")
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     assert response.json()["status"] == "degraded"
@@ -29,14 +29,14 @@ def test_08_models_returns_exact_two_keys(app_client):
     client, _ = app_client
     models = client.get("/api/v1/models").json()["models"]
     assert [item["key"] for item in models] == [
-        "YOLO26n-seg",
-        "YOLO26n-VMamba-seg",
+        "YOLO26s-seg",
+        "YOLO26s-TSVM-FP32-seg",
     ]
 
 
 def test_09_models_readiness_comes_from_registry(app_client):
     client, _ = app_client
-    set_unavailable("YOLO26n-VMamba-seg")
+    set_unavailable("YOLO26s-TSVM-FP32-seg")
     models = client.get("/api/v1/models").json()["models"]
     assert models[0]["ready"] is True
     assert models[1]["ready"] is False

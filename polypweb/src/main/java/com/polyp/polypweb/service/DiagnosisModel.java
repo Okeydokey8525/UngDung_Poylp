@@ -5,8 +5,8 @@ import java.util.Optional;
 
 public enum DiagnosisModel {
 
-    BASELINE("YOLO26n-seg", "BASELINE"),
-    VMAMBA("YOLO26n-VMamba-seg", "VMAMBA");
+    BASELINE("YOLO26s-seg", "BASELINE"),
+    VMAMBA("YOLO26s-TSVM-FP32-seg", "VMAMBA");
 
     private final String modelType;
     private final String category;

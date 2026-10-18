@@ -95,7 +95,7 @@ class _Hero extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Text(
-              'Ứng dụng nghiên cứu sử dụng YOLO26n-seg và mô hình tích hợp VMamba.',
+              'Ứng dụng nghiên cứu sử dụng YOLO26s-seg và mô hình tích hợp VMamba.',
             ),
           ],
         ),

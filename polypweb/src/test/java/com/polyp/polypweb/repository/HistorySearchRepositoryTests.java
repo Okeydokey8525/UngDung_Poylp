@@ -66,7 +66,7 @@ class HistorySearchRepositoryTests {
     void keywordIsRegexEscapedAndModelDetectionDateFiltersRemainServerSide() {
         HistoryFilter filter = new HistoryFilter();
         filter.setKeyword("case.*(test)");
-        filter.setModel("YOLO26n-VMamba-seg");
+        filter.setModel("YOLO26s-TSVM-FP32-seg");
         filter.setDetected("true");
         filter.setDateFrom("2026-07-01");
         filter.setDateTo("2026-07-31");
@@ -79,7 +79,7 @@ class HistorySearchRepositoryTests {
         Document query = captor.getValue().getQueryObject();
         String rendered = query.toString();
         assertTrue(rendered.contains("\\Qcase.*(test)\\E"));
-        assertTrue(rendered.contains("YOLO26n-VMamba-seg"));
+        assertTrue(rendered.contains("YOLO26s-TSVM-FP32-seg"));
         assertTrue(rendered.contains("detected=true"));
         assertTrue(rendered.contains("createdAt"));
     }

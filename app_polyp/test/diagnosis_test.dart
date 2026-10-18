@@ -90,7 +90,7 @@ void main() {
     final result = DiagnosisResult.fromJson({
       'id': 'd-1',
       'fileName': 'sample.jpg',
-      'modelType': 'YOLO26n-seg',
+      'modelType': 'YOLO26s-seg',
       'modelCategory': 'BASELINE',
       'detected': true,
       'label': 'polyp',
@@ -120,12 +120,12 @@ void main() {
   });
 
   test('M4 03 baseline model contract is exact', () {
-    expect(DiagnosisModelOption.baseline.apiValue, 'YOLO26n-seg');
+    expect(DiagnosisModelOption.baseline.apiValue, 'YOLO26s-seg');
     expect(DiagnosisModelOption.baseline.category, 'Baseline');
   });
 
   test('M4 04 VMamba model contract is exact', () {
-    expect(DiagnosisModelOption.vmamba.apiValue, 'YOLO26n-VMamba-seg');
+    expect(DiagnosisModelOption.vmamba.apiValue, 'YOLO26s-TSVM-FP32-seg');
     expect(DiagnosisModelOption.values, hasLength(2));
   });
 
@@ -415,7 +415,7 @@ void main() {
     ).createDiagnosis(testSelectedImage(), DiagnosisModelOption.vmamba);
     final data = createRequest.data! as FormData;
     expect(data.fields.map((entry) => entry.key), contains('modelType'));
-    expect(data.fields.single.value, 'YOLO26n-VMamba-seg');
+    expect(data.fields.single.value, 'YOLO26s-TSVM-FP32-seg');
     expect(data.files.single.key, 'image');
     expect(createRequest.headers['X-CSRF-TOKEN'], 'csrf-token');
   });
@@ -463,7 +463,7 @@ void main() {
     'M4 34 result shows model metrics and disclaimer without winner claim',
     (tester) async {
       final result = testDiagnosisResult(
-        modelType: 'YOLO26n-VMamba-seg',
+        modelType: 'YOLO26s-TSVM-FP32-seg',
         modelCategory: 'VMAMBA',
       );
       final api = FakeDiagnosisApi();
@@ -474,7 +474,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('YOLO26n-VMamba-seg'), findsOneWidget);
+      expect(find.text('YOLO26s-TSVM-FP32-seg'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
       expect(find.text('62.4%'), findsOneWidget);
       expect(find.text('148.5 ms'), findsOneWidget);

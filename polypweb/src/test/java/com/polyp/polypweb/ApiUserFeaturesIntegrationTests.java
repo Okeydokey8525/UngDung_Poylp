@@ -466,7 +466,7 @@ class ApiUserFeaturesIntegrationTests {
                     "diagnosis-" + (index + 1),
                     null,
                     "sample-" + index + ".jpg",
-                    "YOLO26n-seg",
+                    "YOLO26s-seg",
                     "Baseline",
                     "Phân tích đơn",
                     true,
@@ -484,7 +484,7 @@ class ApiUserFeaturesIntegrationTests {
                 "User A",
                 2, 2, 6, 5, 1, 4, 2, 12,
                 145.5, 82.5, 83.333,
-                "YOLO26n-seg",
+                "YOLO26s-seg",
                 List.of(new DailyUsageView(LocalDate.now(), "Hôm nay", 3, 100)),
                 activities
         );

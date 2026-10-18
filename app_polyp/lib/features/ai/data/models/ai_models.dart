@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:app_polyp/core/network/ai_request_id.dart';
 
 const int maxAiOverlayBytes = 20 * 1024 * 1024;
-const Set<String> supportedAiModelKeys = {'YOLO26n-seg', 'YOLO26n-VMamba-seg'};
+const Set<String> supportedAiModelKeys = {'YOLO26s-seg', 'YOLO26s-TSVM-FP32-seg'};
 
 final class AiHealthResponse {
   const AiHealthResponse({
@@ -272,8 +272,8 @@ final class AiComparisonResult {
     final vmamba = AiComparisonModelResult.fromJson(
       _requiredMap(json, 'vmamba'),
     );
-    if (baseline.modelKey != 'YOLO26n-seg' ||
-        vmamba.modelKey != 'YOLO26n-VMamba-seg') {
+    if (baseline.modelKey != 'YOLO26s-seg' ||
+        vmamba.modelKey != 'YOLO26s-TSVM-FP32-seg') {
       throw const FormatException('comparison model positions are invalid');
     }
     return AiComparisonResult(

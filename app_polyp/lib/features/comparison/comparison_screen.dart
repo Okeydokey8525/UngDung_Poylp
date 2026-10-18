@@ -25,8 +25,8 @@ class ComparisonScreen extends ConsumerWidget {
         const AppSectionHeader(
           title: 'So sánh hai mô hình',
           subtitle:
-              'Ảnh sẽ được xử lý lần lượt bằng YOLO26n-seg và '
-              'YOLO26n-VMamba-seg.',
+              'Ảnh sẽ được xử lý lần lượt bằng YOLO26s-seg và '
+              'YOLO26s-TSVM-FP32-seg.',
         ),
         const SizedBox(height: 18),
         Center(

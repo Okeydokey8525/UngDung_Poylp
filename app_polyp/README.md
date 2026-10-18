@@ -6,7 +6,7 @@ PolypVision Mobile là ứng dụng Flutter phục vụ nghiên cứu phân đo�
 Flutter → FastAPI → AI models
 ```
 
-Hai AI model hiện tại là `YOLO26n-seg` và `YOLO26n-VMamba-seg`.
+Hai AI model hiện tại là `YOLO26s-seg` và `YOLO26s-TSVM-FP32-seg`.
 
 Ứng dụng Mobile không cần Spring Boot. **MongoDB không cần** cho Direct AI runtime. Tổng quan toàn dự án: [../README.md](../README.md). Contract AI: [../polypweb/ai-service/README.md](../polypweb/ai-service/README.md).
 
@@ -21,7 +21,7 @@ Mobile runtime không tạo `AuthController`, `AuthRepository`, Spring `ApiClien
 ## 2. Tính năng
 
 - Home AI với service health và model readiness.
-- Single inference bằng `YOLO26n-seg` hoặc `YOLO26n-VMamba-seg`.
+- Single inference bằng `YOLO26s-seg` hoặc `YOLO26s-TSVM-FP32-seg`.
 - Comparison hai model trên cùng một ảnh qua một request.
 - Chọn ảnh JPG/JPEG/PNG, preview và validate tối đa 10 MB.
 - Upload progress, processing state, cancel, retry, reset và lỗi tiếng Việt.
@@ -103,8 +103,8 @@ Không hardcode device ID hoặc IP LAN vào source.
 
 Model key:
 
-- `YOLO26n-seg`.
-- `YOLO26n-VMamba-seg`.
+- `YOLO26s-seg`.
+- `YOLO26s-TSVM-FP32-seg`.
 
 Response inference/comparison chứa JSON metadata và overlay `{mediaType: image/jpeg, encoding: base64, data: ...}`. Mobile decode Base64 thành bytes trước khi render; lỗi JSON được ánh xạ thành thông báo an toàn và request ID hỗ trợ truy vết.
 

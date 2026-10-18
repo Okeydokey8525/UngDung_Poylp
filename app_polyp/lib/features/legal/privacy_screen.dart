@@ -61,7 +61,7 @@ class PrivacyScreen extends StatelessWidget {
                 LegalBulletList(
                   items: [
                     'Flutter gửi ảnh trực tiếp tới FastAPI đã cấu hình.',
-                    'FastAPI xử lý ảnh bằng YOLO26n-seg hoặc YOLO26n-seg + VMamba.',
+                    'FastAPI xử lý ảnh bằng YOLO26s-seg hoặc YOLO26s-seg + TSVM FP32.',
                     'Mobile nhận metadata kỹ thuật và overlay kết quả.',
                     'Ảnh local và kết quả chỉ được giữ trong state của phiên hiện tại theo implementation mobile.',
                   ],
