@@ -46,6 +46,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -781,6 +782,56 @@ class SecurityIntegrationTests {
                 groupId,
                 true
         );
+    }
+
+    @Test
+    void tsvmResultRendersVmambaBadgeAndActualImageSize() throws Exception {
+        when(diagnosisHistoryService.findByIdAccessible("display-test", "user-id", false))
+                .thenReturn(Optional.of(displayRegressionResult("YOLO26s-TSVM-FP32-seg")));
+
+        mockMvc.perform(get("/diagnoses/display-test").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("vmambaModel", true))
+                .andExpect(content().string(matchesPattern("(?s).*class=\"model-family-badge\\s+vmamba\">VMamba</span>.*")))
+                .andExpect(content().string(containsString("621 × 530 px")));
+    }
+
+    @Test
+    void baselineResultRendersBaselineBadge() throws Exception {
+        when(diagnosisHistoryService.findByIdAccessible("display-test", "user-id", false))
+                .thenReturn(Optional.of(displayRegressionResult("YOLO26s-seg")));
+
+        mockMvc.perform(get("/diagnoses/display-test").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("vmambaModel", false))
+                .andExpect(content().string(matchesPattern("(?s).*class=\"model-family-badge\\s+baseline\">Baseline</span>.*")));
+    }
+
+    @Test
+    void oldUnknownModelIsNotMislabelledAsBaseline() throws Exception {
+        when(diagnosisHistoryService.findByIdAccessible("display-test", "user-id", false))
+                .thenReturn(Optional.of(displayRegressionResult("historical-model")));
+
+        mockMvc.perform(get("/diagnoses/display-test").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("unknownModel", true))
+                .andExpect(content().string(containsString("Mô hình cũ")));
+    }
+
+    @Test
+    void homeNamesComeFromCurrentSmallModelRegistry() throws Exception {
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("YOLO26s-seg và YOLO26s-TSVM-FP32-seg")))
+                .andExpect(content().string(not(containsString("YOLO26n"))))
+                .andExpect(content().string(containsString("đăng nhập để phân tích ảnh")));
+    }
+
+    private DiagnosisResultView displayRegressionResult(String modelType) {
+        return new DiagnosisResultView(
+                "display-test", "/diagnoses/display-test/original-image", "/diagnoses/display-test/result-image",
+                "sample.jpg", modelType, true, "polyp", 60, 100, 2,
+                "621 × 530 px", LocalDateTime.now(), true, null, false);
     }
 
     private UserDashboardView emptyUserDashboard() {

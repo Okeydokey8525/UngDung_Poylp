@@ -38,12 +38,8 @@ class ComparisonHistorySearchRepositoryTests {
     @Test
     void aggregationGroupsBeforePaginationAndCountsGroupsNotDocuments() {
         Document response = new Document("invalidGroups", List.of())
-                .append(
-                        "records",
-                        List.of(new Document()
-                                .append("metadata", List.of(new Document("count", 27)))
-                                .append("data", List.of()))
-                );
+                .append("metadata", List.of(new Document("count", 27)))
+                .append("data", List.of());
         when(mongoTemplate.aggregate(
                 any(Aggregation.class),
                 eq("diagnosis_history"),
@@ -70,6 +66,10 @@ class ComparisonHistorySearchRepositoryTests {
         assertTrue(rendered.contains("originalImageUrls"));
         assertTrue(rendered.contains("fileNames"));
         assertTrue(rendered.contains("$skip=10") || rendered.contains("$skip: 10"));
+        assertEquals(1, rendered.split("\\$facet", -1).length - 1);
+        Document facets = pipeline.get(pipeline.size() - 1).get("$facet", Document.class);
+        assertTrue(facets.containsKey("metadata"));
+        assertTrue(facets.containsKey("data"));
         assertEquals(27, page.getTotalElements());
         assertEquals(1, page.getNumber());
     }
@@ -77,12 +77,8 @@ class ComparisonHistorySearchRepositoryTests {
     @Test
     void aggregationMatchesCurrentUserAndAppliesPostGroupFilters() {
         Document response = new Document("invalidGroups", List.of())
-                .append(
-                        "records",
-                        List.of(new Document()
-                                .append("metadata", List.of())
-                                .append("data", List.of()))
-                );
+                .append("metadata", List.of())
+                .append("data", List.of());
         when(mongoTemplate.aggregate(
                 any(Aggregation.class),
                 eq("diagnosis_history"),

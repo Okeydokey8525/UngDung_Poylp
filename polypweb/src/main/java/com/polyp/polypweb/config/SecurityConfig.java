@@ -58,7 +58,7 @@ public class SecurityConfig {
         };
         String contentSecurityPolicy = "default-src 'self'; "
                 + "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
-                + "img-src 'self' data:; "
+                + "img-src 'self' data: blob:; "
                 + "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
                 + "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
                 + "font-src 'self' data: https://cdn.jsdelivr.net; "

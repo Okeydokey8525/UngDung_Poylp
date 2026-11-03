@@ -17,6 +17,7 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any
 
+import cv2
 import numpy as np
 import torch
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
@@ -36,6 +37,7 @@ PIL_IMAGE_OPEN = Image.open
 
 BASE_DIR = Path(__file__).resolve().parent
 VMAMBA_MODULE_PATH = BASE_DIR / "custom_ultralytics" / "topology_shape_vmamba.py"
+CONTOUR_COLOR_BGR = (0, 255, 255)  # yellow outline, visible on both the mask fill and the mucosa
 
 
 def register_vmamba_module() -> None:
@@ -447,11 +449,30 @@ def decode_image(content: bytes, declared_content_type: str) -> Image.Image:
         ) from None
 
 
+def draw_polyp_contours(image_bgr: np.ndarray, result: Any) -> np.ndarray:
+    """Draw a closed outline around every predicted polyp mask on top of the plotted overlay."""
+    masks = getattr(result, "masks", None)
+    polygons = getattr(masks, "xy", None) if masks is not None else None
+    if not polygons:
+        return image_bgr
+
+    outlined = np.ascontiguousarray(image_bgr)
+    thickness = max(2, round(max(outlined.shape[:2]) / 300))
+    for polygon in polygons:
+        if polygon is None or len(polygon) < 3:
+            continue
+        points = np.round(np.asarray(polygon, dtype=np.float32)).astype(np.int32).reshape(-1, 1, 2)
+        cv2.polylines(outlined, [points], isClosed=True, color=CONTOUR_COLOR_BGR,
+                      thickness=thickness, lineType=cv2.LINE_AA)
+    return outlined
+
+
 def encode_result_image(result: Any) -> str:
     plotted_bgr = result.plot()
     if plotted_bgr is None or plotted_bgr.size == 0:
         raise RuntimeError("The model produced an empty result image")
 
+    plotted_bgr = draw_polyp_contours(plotted_bgr, result)
     plotted_rgb = np.ascontiguousarray(plotted_bgr[..., ::-1])
     output = BytesIO()
     Image.fromarray(plotted_rgb).save(output, format="JPEG", quality=90)

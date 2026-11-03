@@ -68,9 +68,8 @@ public class ComparisonHistorySearchRepository {
             );
         }
 
-        Document recordsFacet = firstDocument(result, "records");
-        long total = countFromFacet(recordsFacet, "metadata");
-        List<ComparisonHistoryRecord> records = documents(recordsFacet, "data")
+        long total = countFromFacet(result, "metadata");
+        List<ComparisonHistoryRecord> records = documents(result, "data")
                 .stream()
                 .map(this::toRecord)
                 .toList();
@@ -143,23 +142,26 @@ public class ComparisonHistorySearchRepository {
                         ))
                 )));
         records.add(new Document("$match", filterMatch(filter)));
-        records.add(new Document("$facet", new Document()
-                .append("metadata", List.of(new Document("$count", "count")))
-                .append("data", List.of(
-                        new Document("$sort", new Document(
-                                filter.getSortOption().getField(),
-                                filter.getSortOption().getDirection()
-                        ).append("comparisonGroupId", 1)),
-                        new Document("$skip", (long) filter.getPageIndex() * filter.getPageSize()),
-                        new Document("$limit", filter.getPageSize())
-                ))));
+
+        // MongoDB forbids nesting $facet. Count and page the same filtered groups
+        // in sibling branches so the total remains independent of pagination.
+        List<Document> metadata = new ArrayList<>(records);
+        metadata.add(new Document("$count", "count"));
+        List<Document> data = new ArrayList<>(records);
+        data.add(new Document("$sort", new Document(
+                filter.getSortOption().getField(),
+                filter.getSortOption().getDirection()
+        ).append("comparisonGroupId", 1)));
+        data.add(new Document("$skip", (long) filter.getPageIndex() * filter.getPageSize()));
+        data.add(new Document("$limit", filter.getPageSize()));
 
         return new Document()
                 .append("invalidGroups", List.of(
                         new Document("$match", new Document("validGroup", false)),
                         new Document("$count", "count")
                 ))
-                .append("records", records);
+                .append("metadata", metadata)
+                .append("data", data);
     }
 
     private Document filterMatch(ComparisonHistoryFilter filter) {

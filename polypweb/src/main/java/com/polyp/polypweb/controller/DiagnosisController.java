@@ -5,6 +5,7 @@ import com.polyp.polypweb.view.DiagnosisResultView;
 import com.polyp.polypweb.view.ModelOptionView;
 import com.polyp.polypweb.service.DiagnosisAnalysisService;
 import com.polyp.polypweb.service.DiagnosisHistoryService;
+import com.polyp.polypweb.service.DiagnosisModel;
 import com.polyp.polypweb.security.CurrentUserPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,7 +124,7 @@ public class DiagnosisController {
         DiagnosisResultView result = createMockResult(
                 "PV-DEMO-001",
                 "noi-soi-dai-trang-demo.jpg",
-                "YOLO26m-VMamba-seg",
+                DiagnosisModel.VMAMBA.getModelType(),
                 true,
                 93.4,
                 118.6,
@@ -145,9 +146,11 @@ public class DiagnosisController {
         model.addAttribute("result", result);
         model.addAttribute(
                 "vmambaModel",
-                result.getModelType() != null
-                        && result.getModelType().toLowerCase().contains("vmamba")
+                DiagnosisModel.fromModelType(result.getModelType())
+                        .filter(selected -> selected == DiagnosisModel.VMAMBA)
+                        .isPresent()
         );
+        model.addAttribute("unknownModel", DiagnosisModel.fromModelType(result.getModelType()).isEmpty());
     }
 
     private DiagnosisResultView createMockResult(
@@ -168,7 +171,7 @@ public class DiagnosisController {
                 detected ? "polyp" : "Không có",
                 confidence,
                 processingTime,
-                "1280 × 720 px",
+                "Ảnh minh họa",
                 createdAt,
                 true
         );

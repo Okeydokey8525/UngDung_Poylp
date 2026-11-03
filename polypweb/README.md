@@ -25,6 +25,8 @@ Tài liệu FastAPI: [ai-service/README.md](ai-service/README.md). Tổng quan t
 
 Dashboard và processing time mô tả hoạt động hệ thống; chúng không phải mAP, Dice, IoU hoặc benchmark khoa học.
 
+Kết quả mới lưu `imageWidth` và `imageHeight` đọc từ header ảnh gốc, cho cả phân tích đơn và so sánh. Với bản ghi cũ chưa có hai trường này, Web đọc kích thước từ ảnh gốc nếu tệp còn truy cập được; nếu không, giao diện ghi “Chưa xác định”. Việc xem bản ghi cũ không tự ghi lại MongoDB và không gán kích thước giả định. Tên và loại mô hình trên giao diện lấy theo danh mục `DiagnosisModel`; mô hình lịch sử không còn trong danh mục được ghi “Mô hình cũ”.
+
 ## 2. Công nghệ
 
 - Java 17.

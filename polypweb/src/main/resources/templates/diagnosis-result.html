@@ -21,7 +21,7 @@
                         <h1 th:text="${'Kết quả phân đoạn ' + result.modelType}">Kết quả phân đoạn YOLO26s-seg</h1>
                         <span class="model-family-badge"
                               th:classappend="${vmambaModel ? ' vmamba' : ' baseline'}"
-                              th:text="${vmambaModel ? 'VMamba' : 'Baseline'}">Baseline</span>
+                              th:text="${unknownModel ? 'Mô hình cũ' : (vmambaModel ? 'VMamba' : 'Baseline')}">Baseline</span>
                     </div>
                     <p th:text="${result.fileName}">noi-soi-demo.jpg</p>
                 </div>
@@ -111,7 +111,7 @@
                         </div>
                         <div class="info-item">
                             <span><i class="bi bi-aspect-ratio"></i> Kích thước ảnh</span>
-                            <strong th:text="${result.imageSize}">1280 × 720 px</strong>
+                            <strong th:text="${result.imageSize}">Chưa xác định</strong>
                         </div>
                         <div class="info-item">
                             <span><i class="bi bi-database-check"></i> Trạng thái lịch sử</span>

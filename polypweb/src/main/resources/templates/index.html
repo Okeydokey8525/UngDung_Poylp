@@ -28,7 +28,7 @@
                     </div>
                     <div class="hero-note">
                         <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
-                        Không yêu cầu đăng nhập để trải nghiệm giao diện minh họa
+                        Xem giới thiệu không cần đăng nhập; đăng nhập để phân tích ảnh và lưu lịch sử.
                     </div>
                 </div>
                 <div class="col-lg-6">
@@ -138,8 +138,8 @@
                 <div class="col-md-6 col-lg-4">
                     <article class="feature-card">
                         <div class="feature-icon"><i class="bi bi-columns-gap"></i></div>
-                        <h3>So sánh nhiều mô hình</h3>
-                        <p>Chuẩn bị sẵn lựa chọn các kích thước YOLO26-seg và biến thể VMamba.</p>
+                        <h3>So sánh hai mô hình</h3>
+                        <p>Đối chiếu YOLO26s-seg và TSVM FP32 trên cùng một ảnh đầu vào.</p>
                     </article>
                 </div>
                 <div class="col-md-6 col-lg-4">
@@ -178,11 +178,11 @@
                 <article class="model-card">
                     <span class="model-kicker">Baseline</span>
                     <div class="model-icon"><i class="bi bi-diagram-3"></i></div>
-                    <h3>YOLO26-seg</h3>
+                    <h3>YOLO26s-seg</h3>
                     <p>Mô hình baseline dùng làm mốc tham chiếu trong các thí nghiệm phân đoạn polyp.</p>
                     <ul class="check-list">
                         <li><i class="bi bi-check2"></i> Một giai đoạn, hướng tới suy luận hiệu quả</li>
-                        <li><i class="bi bi-check2"></i> Nhiều kích thước n, s, m, l và x</li>
+                        <li><i class="bi bi-check2"></i> Cấu hình s đang được sử dụng trong ứng dụng</li>
                         <li><i class="bi bi-check2"></i> Cung cấp mask phân đoạn theo ảnh</li>
                     </ul>
                 </article>
@@ -194,7 +194,7 @@
                         không gian dài hạn trên feature map mức cao.</p>
                     <ul class="check-list">
                         <li><i class="bi bi-check2"></i> Khối VSS/SS2D-inspired</li>
-                        <li><i class="bi bi-check2"></i> Giữ cùng nhóm kích thước để đối chiếu</li>
+                        <li><i class="bi bi-check2"></i> Dùng cấu hình s để đối chiếu với Baseline</li>
                         <li><i class="bi bi-check2"></i> Chưa khẳng định vượt trội trước thực nghiệm</li>
                     </ul>
                 </article>

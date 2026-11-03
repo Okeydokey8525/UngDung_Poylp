@@ -43,6 +43,7 @@ public class DiagnosisHistoryService {
                 null,
                 false
         );
+        populateImageDimensions(history);
         return toView(repository.save(history));
     }
 
@@ -107,11 +108,30 @@ public class DiagnosisHistoryService {
                 history.getConfidence(),
                 history.getProcessingTimeMs(),
                 history.getMaskCount(),
-                "1280 × 720 px",
+                imageSize(history),
                 history.getCreatedAt(),
                 true,
                 history.getComparisonGroupId(),
                 history.isComparisonResult()
         );
+    }
+
+    public void populateImageDimensions(DiagnosisHistory history) {
+        storageService.readOriginalImageDimensions(history.getOriginalImageUrl())
+                .ifPresent(dimensions -> {
+                    history.setImageWidth(dimensions.width());
+                    history.setImageHeight(dimensions.height());
+                });
+    }
+
+    private String imageSize(DiagnosisHistory history) {
+        if (history.getImageWidth() != null && history.getImageWidth() > 0
+                && history.getImageHeight() != null && history.getImageHeight() > 0) {
+            return history.getImageWidth() + " × " + history.getImageHeight() + " px";
+        }
+        // Legacy records remain unchanged in MongoDB; read their original header if available.
+        return storageService.readOriginalImageDimensions(history.getOriginalImageUrl())
+                .map(FileStorageService.ImageDimensions::displayText)
+                .orElse("Chưa xác định");
     }
 }

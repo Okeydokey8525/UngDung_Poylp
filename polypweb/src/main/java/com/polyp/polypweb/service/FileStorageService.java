@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -18,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -166,6 +169,46 @@ public class FileStorageService {
             return Optional.of(new UrlResource(path.get().toUri()));
         } catch (IOException exception) {
             return Optional.empty();
+        }
+    }
+
+    /** Read image header metadata without decoding the full pixel array. */
+    public Optional<ImageDimensions> readOriginalImageDimensions(String mediaUrl) {
+        Optional<Path> resolvedPath = resolveMediaUrl(mediaUrl);
+        if (resolvedPath.isEmpty()
+                || !resolvedPath.get().getParent().equals(originalDirectory)
+                || !Files.isRegularFile(resolvedPath.get())
+                || !Files.isReadable(resolvedPath.get())) {
+            return Optional.empty();
+        }
+        try (ImageInputStream input = ImageIO.createImageInputStream(resolvedPath.get().toFile())) {
+            if (input == null) {
+                return Optional.empty();
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) {
+                return Optional.empty();
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input, true, true);
+                int width = reader.getWidth(0);
+                int height = reader.getHeight(0);
+                return width > 0 && height > 0
+                        ? Optional.of(new ImageDimensions(width, height))
+                        : Optional.empty();
+            } finally {
+                reader.dispose();
+            }
+        } catch (IOException | RuntimeException exception) {
+            LOGGER.debug("Không đọc được kích thước ảnh lưu trữ: {}", exception.getClass().getSimpleName());
+            return Optional.empty();
+        }
+    }
+
+    public record ImageDimensions(int width, int height) {
+        public String displayText() {
+            return width + " × " + height + " px";
         }
     }
 

@@ -309,7 +309,7 @@ public class ModelComparisonService {
             String resultImageUrl,
             LocalDateTime createdAt,
             String comparisonGroupId) {
-        return new DiagnosisHistory(
+        DiagnosisHistory history = new DiagnosisHistory(
                 userId,
                 fileName,
                 prediction.getModelType(),
@@ -324,6 +324,8 @@ public class ModelComparisonService {
                 comparisonGroupId,
                 true
         );
+        historyService.populateImageDimensions(history);
+        return history;
     }
 
     private Optional<ComparisonResultView> toCompleteComparison(List<DiagnosisHistory> histories) {

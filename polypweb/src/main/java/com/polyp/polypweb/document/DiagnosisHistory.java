@@ -19,6 +19,8 @@ public class DiagnosisHistory {
     private double confidence;
     private double processingTimeMs;
     private int maskCount;
+    private Integer imageWidth;
+    private Integer imageHeight;
     private String originalImageUrl;
     private String resultImageUrl;
     private LocalDateTime createdAt;
@@ -127,6 +129,22 @@ public class DiagnosisHistory {
 
     public void setMaskCount(int maskCount) {
         this.maskCount = maskCount;
+    }
+
+    public Integer getImageWidth() {
+        return imageWidth;
+    }
+
+    public void setImageWidth(Integer imageWidth) {
+        this.imageWidth = imageWidth;
+    }
+
+    public Integer getImageHeight() {
+        return imageHeight;
+    }
+
+    public void setImageHeight(Integer imageHeight) {
+        this.imageHeight = imageHeight;
     }
 
     public String getOriginalImageUrl() {
