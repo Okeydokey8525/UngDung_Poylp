@@ -1,25 +1,37 @@
 {
   "experiment": "Kvasir BG20 20 seeds FP32",
+  "selection_rule": "Same seed for both models (one matched pair). Chosen seed: paired delta (TSVM - Baseline) of mask mAP50-95 at the best.pt epoch closest to the median delta over seeds 0-19 (median +0.0039; seed 15: +0.0037). Source: Test_Mau/00_tai_lieu_tong_quan/bang/02_ket_qua_tung_seed.csv, column fitness_epoch_mask_map50_95. Replaces seed 0 (2026-11-09), where TSVM was below Baseline (0.7245 vs 0.7366) and not representative.",
   "models": [
     {
       "model_key": "YOLO26s-seg",
-      "seed": 0,
-      "selection": "existing best.pt selected by Ultralytics box+mask fitness; not the max-mask summary epoch",
-      "source_run": "YOLOv26s-seg/Kvasir_BG20_Baseline_YOLO26s_seg_s0_w2",
+      "seed": 15,
+      "selection": "existing best.pt selected by Ultralytics box+mask fitness (epoch 80); not the max-mask summary epoch",
+      "best_pt_epoch_mask_map50_95": 0.71758,
+      "median_over_20_seeds": 0.7170,
+      "source_run": "Baseline_YOLO26s_seg/Kvasir_BG20_Baseline_YOLO26s_seg_s15_w2",
       "file": "yolo26s-seg-best.pt",
-      "sha256": "61ebd02851f5a12921ab10f64ade433c745f87aac91fd41a310cd00c7d2a3906",
+      "sha256": "f72845022e2a4eab186af93648fc9e253cda01ac3f1c0634b0b2479aa83df78b",
       "bytes": 23350941,
       "inference_precision": "float32"
     },
     {
       "model_key": "YOLO26s-TSVM-FP32-seg",
-      "seed": 0,
-      "selection": "existing best.pt selected by Ultralytics box+mask fitness; not the max-mask summary epoch",
-      "source_run": "Kvasir_BG20_YOLO26s_seg_TSVM_FP32/Kvasir_BG20_YOLO26s_seg_TSVM_FP32_s0_w2",
+      "seed": 15,
+      "selection": "existing best.pt selected by Ultralytics box+mask fitness (epoch 81); not the max-mask summary epoch",
+      "best_pt_epoch_mask_map50_95": 0.72128,
+      "median_over_20_seeds": 0.7232,
+      "source_run": "TSVM_FP32/Kvasir_BG20_YOLO26s_seg_TSVM_FP32_s15_w2",
       "file": "yolo26s-tsvm-fp32-best.pt",
-      "sha256": "b0578c7612e1e48cc490ef71eca5f025fb1eeb5a02c1fe6cb7e869d639e2c7a8",
+      "sha256": "1de013fb4d4c6a50b1a4b320c360cf12c8b8d44c77ccc40e33e52beb59882617",
       "bytes": 49669130,
       "inference_precision": "float32"
     }
-  ]
+  ],
+  "previous": {
+    "seed": 0,
+    "files": {
+      "seed0__yolo26s-seg-best.pt": "61ebd02851f5a12921ab10f64ade433c745f87aac91fd41a310cd00c7d2a3906",
+      "seed0__yolo26s-tsvm-fp32-best.pt": "b0578c7612e1e48cc490ef71eca5f025fb1eeb5a02c1fe6cb7e869d639e2c7a8"
+    }
+  }
 }

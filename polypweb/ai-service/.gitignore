@@ -3,3 +3,5 @@
 __pycache__/
 *.pyc
 models/*.pt
+!models/yolo26s-seg-best.pt
+!models/yolo26s-tsvm-fp32-best.pt

@@ -39,3 +39,5 @@ build/
 /ai-service/.venv/
 **/__pycache__/
 /ai-service/models/*.pt
+!/ai-service/models/yolo26s-seg-best.pt
+!/ai-service/models/yolo26s-tsvm-fp32-best.pt
