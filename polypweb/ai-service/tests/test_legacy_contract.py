@@ -47,3 +47,21 @@ def test_04_legacy_validation_keeps_fastapi_detail(app_client):
     assert response.status_code == 422
     assert set(response.json()) == {"detail"}
     assert isinstance(response.json()["detail"], list)
+
+
+def test_05_legacy_response_exposes_stage_timings_in_header(app_client):
+    client, _ = app_client
+    response = client.post(
+        "/predict",
+        data={"modelType": "YOLO26s-seg"},
+        files=upload(),
+    )
+    assert response.status_code == 200
+    stages = {}
+    for part in response.headers["Server-Timing"].split(","):
+        name, duration = part.strip().split(";dur=")
+        stages[name] = float(duration)
+    assert {"decode", "infer", "total"} <= set(stages)
+    assert stages["infer"] == 12.5
+    assert all(value >= 0 for value in stages.values())
+    assert stages["total"] >= stages["decode"]

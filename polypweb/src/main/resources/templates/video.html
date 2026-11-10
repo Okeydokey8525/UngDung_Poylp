@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero compact-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Phân tích video</li>
+                </ol>
+            </nav>
+            <div class="row align-items-end g-3">
+                <div class="col-lg-8">
+                    <span class="eyebrow">Offline video analysis</span>
+                    <h1>Phân tích video nội soi</h1>
+                    <p>Tải một đoạn video đã ghi, hệ thống lấy mẫu khung hình, phân đoạn polyp trên từng khung
+                        và trả về video có lớp phủ cùng dòng thời gian các đoạn nghi ngờ.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container diagnose-section">
+        <form id="videoForm" th:action="@{/video}" method="post" enctype="multipart/form-data" novalidate>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="workspace-card h-100">
+                        <div class="card-heading">
+                            <div>
+                                <span class="card-step">Bước 1</span>
+                                <h2>Chọn video nội soi</h2>
+                            </div>
+                            <span class="file-requirement">MP4, AVI, MOV, MKV, WEBM · Tối đa 200 MB, 5 phút</span>
+                        </div>
+                        <input class="form-control form-control-lg" type="file" id="videoInput" name="video"
+                               accept=".mp4,.avi,.mov,.mkv,.webm,video/*" aria-describedby="videoHelp videoError" required>
+                        <small id="videoHelp" class="d-block mt-2 text-muted">
+                            Video được xử lý ngoại tuyến (không phải luồng trực tiếp từ máy nội soi). Video dài hơn 5 phút
+                            cần cắt thành nhiều đoạn trước khi tải lên.
+                        </small>
+                        <div id="videoError" class="validation-message" role="alert" aria-live="assertive" hidden>
+                            <i class="bi bi-exclamation-circle"></i>
+                            <span>Vui lòng chọn video hợp lệ.</span>
+                        </div>
+                        <div class="video-preview-wrap" id="videoPreviewWrap" hidden>
+                            <video id="videoPreview" controls muted playsinline preload="metadata"></video>
+                            <span id="videoPreviewInfo" class="video-preview-info"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="workspace-card h-100">
+                        <div class="card-heading">
+                            <div>
+                                <span class="card-step">Bước 2</span>
+                                <h2>Thiết lập</h2>
+                            </div>
+                        </div>
+                        <label class="form-label" for="modelType">Mô hình</label>
+                        <select class="form-select form-select-lg mb-3" id="modelType" name="modelType">
+                            <option value="yolo26s-seg">YOLO26s-seg (Baseline)</option>
+                            <option value="yolo26s-tsvm-fp32-seg">YOLO26s-TSVM-FP32-seg (VMamba)</option>
+                        </select>
+                        <fieldset class="mb-3">
+                            <legend class="form-label">Cách chạy</legend>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="analysisMode" id="modeOffline"
+                                       value="offline" checked>
+                                <label class="form-check-label" for="modeOffline">
+                                    Phân tích xong rồi xem kết quả
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="analysisMode" id="modeLive"
+                                       value="live">
+                                <label class="form-check-label" for="modeLive">
+                                    Mô phỏng thời gian thực (xem trực tiếp trong lúc phân tích)
+                                </label>
+                            </div>
+                            <p class="form-text mb-0">Mô phỏng phát lại video đã quay đúng tốc độ gốc, mỗi khung được
+                                phân đoạn và hiện ngay; xong sẽ tự lưu vào lịch sử. Đây chưa phải hệ thống gắn trực
+                                tiếp vào máy nội soi.</p>
+                        </fieldset>
+                        <label class="form-label" for="sampleFps">Số khung phân tích mỗi giây</label>
+                        <select class="form-select form-select-lg" id="sampleFps" name="sampleFps">
+                            <option value="2">2 khung/giây (nhanh nhất)</option>
+                            <option value="5" selected>5 khung/giây (khuyến nghị)</option>
+                            <option value="10">10 khung/giây (mặt nạ bám sát hơn, chậm hơn)</option>
+                            <option value="0">Tất cả khung (chính xác từng khung, cần GPU)</option>
+                        </select>
+                        <div class="mock-info mt-3">
+                            <i class="bi bi-info-circle"></i>
+                            <p>Video kết quả giữ đủ số khung và tốc độ của video gốc nên phát mượt như bản gốc. Mô hình
+                                chỉ chạy trên các khung được lấy mẫu; khung ở giữa dùng lại mặt nạ của khung phân tích gần
+                                nhất (lệch tối đa 0,2 giây ở 5 khung/giây). Mỗi khung dùng ngưỡng tin cậy 0,25 và ảnh 640
+                                như phân tích ảnh. Chế độ "Tất cả khung" chỉ chạy khi dịch vụ AI dùng GPU.</p>
+                        </div>
+                        <button class="btn btn-primary btn-lg w-100 analyze-button" type="submit" id="videoSubmit">
+                            <span class="button-default"><i class="bi bi-film"></i> Bắt đầu phân tích video</span>
+                            <span class="button-loading" hidden>
+                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                Đang phân tích từng khung hình, vui lòng không đóng trang...
+                            </span>
+                        </button>
+                        <p class="submit-status visually-hidden" id="videoSubmitStatus"
+                           role="status" aria-live="polite" aria-atomic="true"></p>
+                        <p class="privacy-note"><i class="bi bi-shield-check"></i> Video gốc và video kết quả lưu trong
+                            storage cục bộ; MongoDB chỉ lưu tên tệp và chỉ số.</p>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section class="container tips-section">
+        <div class="workspace-card">
+            <div class="card-heading">
+                <div>
+                    <span class="card-step">Lịch sử</span>
+                    <h2>Video đã phân tích</h2>
+                </div>
+            </div>
+            <p class="text-muted mb-0" th:if="${recentVideos.isEmpty()}">Chưa có video nào được phân tích.</p>
+            <div class="table-responsive" th:unless="${recentVideos.isEmpty()}">
+                <table class="table align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th scope="col">Tệp</th>
+                        <th scope="col">Mô hình</th>
+                        <th scope="col">Thời lượng</th>
+                        <th scope="col">Khung có polyp</th>
+                        <th scope="col">Thời điểm</th>
+                        <th scope="col"><span class="visually-hidden">Thao tác</span></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${recentVideos.content}">
+                        <td><a th:href="@{/videos/{id}(id=${item.id})}" th:text="${item.fileName}">clip.mp4</a></td>
+                        <td th:text="${item.modelType}">YOLO26s-seg</td>
+                        <td th:text="${#numbers.formatDecimal(item.durationSec, 1, 1) + ' giây'}">10,0 giây</td>
+                        <td th:text="${item.framesWithPolyp + '/' + item.framesProcessed}">12/50</td>
+                        <td th:text="${#temporals.format(item.createdAt, 'HH:mm · dd/MM/yyyy')}">09:30 · 09/11/2026</td>
+                        <td class="text-end">
+                            <form th:action="@{/videos/{id}/delete(id=${item.id})}" method="post" class="d-inline"
+                                  onsubmit="return confirm('Xóa kết quả video này và các tệp liên quan?');">
+                                <button type="submit" class="btn btn-sm btn-light-danger"
+                                        th:attr="aria-label=${'Xóa ' + item.fileName}">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav class="mt-3" th:if="${recentVideos.totalPages > 1}" aria-label="Phân trang video">
+                <a class="btn btn-sm btn-outline-primary" th:if="${recentVideos.hasPrevious()}"
+                   th:href="@{/video(page=${recentVideos.number - 1})}">Trang trước</a>
+                <span class="mx-2" th:text="${(recentVideos.number + 1) + '/' + recentVideos.totalPages}">1/2</span>
+                <a class="btn btn-sm btn-outline-primary" th:if="${recentVideos.hasNext()}"
+                   th:href="@{/video(page=${recentVideos.number + 1})}">Trang sau</a>
+            </nav>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+<script th:src="@{/js/video.js}"></script>
+</body>
+</html>

@@ -55,6 +55,11 @@ public class ModelComparisonService {
     }
 
     public ComparisonResultView compare(MultipartFile image, String userId) {
+        return compare(image, null, userId);
+    }
+
+    /** Like {@link #compare(MultipartFile, String)}, also scoring both models against a ground-truth mask. */
+    public ComparisonResultView compare(MultipartFile image, MultipartFile groundTruth, String userId) {
         UUID comparisonId = UUID.randomUUID();
         String comparisonGroupId = comparisonId.toString();
         String originalImageUrl = null;
@@ -64,11 +69,17 @@ public class ModelComparisonService {
 
         try {
             String validatedFileName = ImageUploadValidator.validate(image, storageService);
+            boolean withGroundTruth = hasGroundTruth(groundTruth);
+            if (withGroundTruth) {
+                validateGroundTruth(groundTruth);
+            }
+            MultipartFile mask = withGroundTruth ? groundTruth : null;
             requireModelsAvailable();
             originalImageUrl = storageService.storeOriginal(image, comparisonId);
 
             AiPredictionResponse baselinePrediction = predict(
                     image,
+                    mask,
                     BASELINE_MODEL
             );
             baselineResultUrl = storageService.storeComparisonResult(
@@ -79,6 +90,7 @@ public class ModelComparisonService {
 
             AiPredictionResponse vmambaPrediction = predict(
                     image,
+                    mask,
                     VMAMBA_MODEL
             );
             vmambaResultUrl = storageService.storeComparisonResult(
@@ -256,18 +268,41 @@ public class ModelComparisonService {
         }
     }
 
-    private AiPredictionResponse predict(MultipartFile image, String modelType) {
+    private void validateGroundTruth(MultipartFile groundTruth) {
         try {
-            return aiInferenceClient.predict(image, modelType);
+            ImageUploadValidator.validate(groundTruth, storageService);
+        } catch (com.polyp.polypweb.exception.UploadValidationException exception) {
+            throw new ModelComparisonException(
+                    exception.getStatus(),
+                    "INVALID_GROUND_TRUTH",
+                    "Mặt nạ thật: " + exception.getMessage(),
+                    exception
+            );
+        }
+    }
+
+    /** The optional ground-truth mask goes through the same upload checks as the image. */
+    static boolean hasGroundTruth(MultipartFile groundTruth) {
+        return groundTruth != null && !groundTruth.isEmpty();
+    }
+
+    private AiPredictionResponse predict(MultipartFile image, MultipartFile groundTruth, String modelType) {
+        try {
+            return groundTruth == null
+                    ? aiInferenceClient.predict(image, modelType)
+                    : aiInferenceClient.predict(image, groundTruth, modelType);
         } catch (AiServiceException exception) {
             String phase = BASELINE_MODEL.equals(modelType) ? "BASELINE" : "VMAMBA";
             String code = switch (exception.getCode()) {
                 case "MODEL_UNAVAILABLE" -> phase + "_MODEL_UNAVAILABLE";
                 case "AI_SERVICE_TIMEOUT" -> phase + "_TIMEOUT";
                 case "MODEL_RESPONSE_MISMATCH" -> "MODEL_RESPONSE_MISMATCH";
+                case "GROUND_TRUTH_REJECTED" -> "GROUND_TRUTH_REJECTED";
                 default -> "AI_SERVICE_UNAVAILABLE";
             };
-            HttpStatus status = code.endsWith("_TIMEOUT")
+            HttpStatus status = "GROUND_TRUTH_REJECTED".equals(code)
+                    ? HttpStatus.UNPROCESSABLE_ENTITY
+                    : code.endsWith("_TIMEOUT")
                     ? HttpStatus.GATEWAY_TIMEOUT
                     : "MODEL_RESPONSE_MISMATCH".equals(code)
                     ? HttpStatus.BAD_GATEWAY
@@ -297,6 +332,8 @@ public class ModelComparisonService {
             case "BASELINE_TIMEOUT" -> "Lượt inference Baseline phản hồi quá thời gian.";
             case "VMAMBA_TIMEOUT" -> "Lượt inference VMamba phản hồi quá thời gian.";
             case "MODEL_RESPONSE_MISMATCH" -> "Dịch vụ AI trả về kết quả từ mô hình không đúng yêu cầu.";
+            case "GROUND_TRUTH_REJECTED" ->
+                    "Mặt nạ thật phải là ảnh JPG/PNG dưới 10 MB, cùng kích thước với ảnh nội soi.";
             default -> "Dịch vụ AI hiện không khả dụng. Vui lòng thử lại sau.";
         };
     }
@@ -324,6 +361,8 @@ public class ModelComparisonService {
                 comparisonGroupId,
                 true
         );
+        history.setAiRoundTripMs(prediction.getAiRoundTripMs());
+        history.setGroundTruthMetrics(prediction.getGroundTruthMetrics());
         historyService.populateImageDimensions(history);
         return history;
     }

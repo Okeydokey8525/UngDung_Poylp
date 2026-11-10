@@ -98,6 +98,8 @@ class SecurityIntegrationTests {
     private AdminSeedRunner adminSeedRunner;
     @MockitoBean
     private MongoHealthIndicator mongoHealthIndicator;
+    @MockitoBean
+    private com.polyp.polypweb.service.VideoAnalysisService videoAnalysisService;
 
     private UserAccount enabledUser;
     private UserAccount enabledAdmin;
@@ -131,6 +133,73 @@ class SecurityIntegrationTests {
         mockMvc.perform(get("/login")).andExpect(status().isOk());
         mockMvc.perform(get("/register")).andExpect(status().isOk());
         mockMvc.perform(get("/about")).andExpect(status().isOk());
+    }
+
+    @Test
+    void uploadFormsOfferOptionalGroundTruthMask() throws Exception {
+        mockMvc.perform(get("/diagnose").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"groundTruth\"")));
+        mockMvc.perform(get("/compare").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"groundTruth\"")));
+    }
+
+    @Test
+    void resultPagesRenderGroundTruthMetrics() throws Exception {
+        com.polyp.polypweb.view.DiagnosisResultView baseline = gtView("diag-b", "YOLO26s-seg", 0.92061, false);
+        com.polyp.polypweb.view.DiagnosisResultView vmamba = gtView("diag-v", "YOLO26s-TSVM-FP32-seg", 0.9754, false);
+        when(diagnosisHistoryService.findByIdAccessible("diag-b", "user-id", false))
+                .thenReturn(Optional.of(baseline));
+        mockMvc.perform(get("/diagnoses/diag-b").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("So với vùng polyp do chuyên gia khoanh")))
+                .andExpect(content().string(containsString("0,9206")));
+
+        String groupId = "7d0c5d9e-0d6f-4a59-9a3c-4f8f0d0c9b11";
+        when(modelComparisonService.findForUser(groupId, "user-id", false))
+                .thenReturn(Optional.of(new com.polyp.polypweb.view.ComparisonResultView(
+                        groupId, baseline, vmamba, "/diagnoses/diag-b/original-image", "a.jpg",
+                        java.time.LocalDateTime.now())));
+        mockMvc.perform(get("/comparisons/" + groupId).with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Dice (mặt nạ thật)")))
+                .andExpect(content().string(containsString("0,9754")));
+
+        com.polyp.polypweb.view.DiagnosisResultView background = gtView("diag-bg", "YOLO26s-seg", null, true);
+        when(diagnosisHistoryService.findByIdAccessible("diag-bg", "user-id", false))
+                .thenReturn(Optional.of(background));
+        mockMvc.perform(get("/diagnoses/diag-bg").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("không báo nhầm")));
+    }
+
+    private static com.polyp.polypweb.view.DiagnosisResultView gtView(
+            String id, String modelType, Double dice, boolean background) {
+        com.polyp.polypweb.view.DiagnosisResultView view = new com.polyp.polypweb.view.DiagnosisResultView(
+                id, "/diagnoses/" + id + "/original-image", "/diagnoses/" + id + "/result-image", "a.jpg",
+                modelType, !background, background ? null : "polyp", 90.0, 20.0, background ? 0 : 1, "640 × 480",
+                java.time.LocalDateTime.now(), true, "7d0c5d9e-0d6f-4a59-9a3c-4f8f0d0c9b11", true);
+        com.polyp.polypweb.document.GroundTruthMetrics metrics = new com.polyp.polypweb.document.GroundTruthMetrics();
+        metrics.setDice(dice);
+        metrics.setIou(dice == null ? null : dice - 0.07);
+        metrics.setPrecision(dice == null ? null : 0.98);
+        metrics.setRecall(dice == null ? null : 0.87);
+        metrics.setGroundTruthPixels(background ? 0 : 12000);
+        metrics.setBackgroundImage(background);
+        view.setGroundTruthMetrics(metrics);
+        return view;
+    }
+
+    @Test
+    void researchMetricsPageIsPublicAndShowsExportedNumbers() throws Exception {
+        mockMvc.perform(get("/metrics"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Chỉ số phân đoạn theo đối tượng")))
+                .andExpect(content().string(containsString("0,7189 ± 0,0118")))
+                .andExpect(content().string(containsString("+0,0043")))
+                .andExpect(content().string(containsString("0,061")))
+                .andExpect(content().string(containsString("chưa có ý nghĩa thống kê")));
     }
 
     @Test
@@ -337,6 +406,99 @@ class SecurityIntegrationTests {
         mockMvc.perform(get("/history"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    void protectedVideoPagesRedirectGuestToLogin() throws Exception {
+        mockMvc.perform(get("/video"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+        mockMvc.perform(get("/videos/any-id/result-video"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    void videoPageOffersAllFramesModeAndResultExplainsHeldMasks() throws Exception {
+        when(videoAnalysisService.recent("user-id", 0)).thenReturn(org.springframework.data.domain.Page.empty());
+        mockMvc.perform(get("/video").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<option value=\"0\">Tất cả khung")))
+                .andExpect(content().string(containsString("value=\"live\"")));
+
+        com.polyp.polypweb.document.VideoAnalysis held = videoAnalysis("vid-held", 5, 5, 30);
+        when(videoAnalysisService.findAccessible("vid-held", "user-id", false)).thenReturn(Optional.of(held));
+        mockMvc.perform(get("/videos/vid-held").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("khung/giây như video gốc. Mô hình phân tích 5,0")))
+                .andExpect(content().string(containsString("data-time=\"0.2\"")));
+
+        com.polyp.polypweb.document.VideoAnalysis all = videoAnalysis("vid-all", 30, 0, 30);
+        when(videoAnalysisService.findAccessible("vid-all", "user-id", false)).thenReturn(Optional.of(all));
+        mockMvc.perform(get("/videos/vid-all").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("mô hình đã phân tích mọi khung")));
+
+        com.polyp.polypweb.document.VideoAnalysis legacy = videoAnalysis("vid-old", 5, 5, 0);
+        when(videoAnalysisService.findAccessible("vid-old", "user-id", false)).thenReturn(Optional.of(legacy));
+        mockMvc.perform(get("/videos/vid-old").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("(chỉ các khung đã phân tích)")));
+    }
+
+    @Test
+    void livePageAndStatusAreOnlyForTheSessionOwner() throws Exception {
+        String job = "0123456789abcdef0123456789abcdef";
+        com.polyp.polypweb.service.VideoAnalysisService.LiveSession session =
+                org.mockito.Mockito.mock(com.polyp.polypweb.service.VideoAnalysisService.LiveSession.class);
+        when(session.getJobId()).thenReturn(job);
+        when(session.getModelType()).thenReturn("YOLO26s-seg");
+        when(session.getFileName()).thenReturn("clip.mp4");
+        when(session.getRequestedSampleFps()).thenReturn(5);
+        when(videoAnalysisService.findLive(job, "user-id", false)).thenReturn(Optional.of(session));
+        when(videoAnalysisService.liveStatus(session)).thenReturn(java.util.Map.of("state", "running", "framesDone", 7));
+
+        mockMvc.perform(get("/video/live/" + job).with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/video/live/" + job + "/stream")))
+                .andExpect(content().string(containsString("chưa phải hệ thống thời gian")));
+        mockMvc.perform(get("/video/live/" + job + "/status").with(user(principal(enabledUser))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"framesDone\":7")));
+
+        when(videoAnalysisService.findLive("ffffffffffffffffffffffffffffffff", "user-id", false))
+                .thenReturn(Optional.empty());
+        mockMvc.perform(get("/video/live/ffffffffffffffffffffffffffffffff/status").with(user(principal(enabledUser))))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/video/live/" + job + "/status"))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    private static com.polyp.polypweb.document.VideoAnalysis videoAnalysis(
+            String id, double sampleFps, double requestedFps, double outputFps) {
+        com.polyp.polypweb.document.VideoAnalysis analysis = new com.polyp.polypweb.document.VideoAnalysis();
+        analysis.setId(id);
+        analysis.setUserId("user-id");
+        analysis.setFileName("clip.mp4");
+        analysis.setModelType("YOLO26s-seg");
+        analysis.setSampleFps(sampleFps);
+        analysis.setRequestedSampleFps(requestedFps);
+        analysis.setOutputFps(outputFps);
+        analysis.setSourceFps(30);
+        analysis.setDurationSec(1);
+        analysis.setFramesProcessed(2);
+        analysis.setTimeline(java.util.List.of(
+                new com.polyp.polypweb.document.VideoAnalysis.TimelinePoint(0, 0.0, true, 0.9, 1),
+                new com.polyp.polypweb.document.VideoAnalysis.TimelinePoint(6, 0.2, false, 0.0, 0)));
+        analysis.setSegments(java.util.List.of());
+        analysis.setCreatedAt(java.time.LocalDateTime.now());
+        return analysis;
+    }
+
+    @Test
+    void videoUploadWithoutCsrfIsRejected() throws Exception {
+        mockMvc.perform(post("/video").with(user(principal(enabledUser))))
+                .andExpect(status().isForbidden());
     }
 
     @Test

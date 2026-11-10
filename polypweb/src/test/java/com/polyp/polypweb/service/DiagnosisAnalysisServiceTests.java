@@ -114,6 +114,7 @@ class DiagnosisAnalysisServiceTests {
     @Test
     void successfulCreateStoresPrincipalUserAndCanonicalModel() {
         AiPredictionResponse prediction = prediction("YOLO26s-seg");
+        prediction.setAiRoundTripMs(640.5);
         DiagnosisResultView saved = savedResult();
         when(storageService.storeOriginal(eq(image), any())).thenReturn("/media/original/id.jpg");
         when(aiInferenceClient.predict(image, "YOLO26s-seg")).thenReturn(prediction);
@@ -128,6 +129,7 @@ class DiagnosisAnalysisServiceTests {
         assertEquals("YOLO26s-seg", resultCaptor.getValue().getModelType());
         assertEquals(62.4, resultCaptor.getValue().getConfidence(), 0.0001);
         assertEquals(2, resultCaptor.getValue().getMaskCount());
+        assertEquals(640.5, resultCaptor.getValue().getAiRoundTripMs(), 0.0001);
     }
 
     @Test
@@ -210,6 +212,47 @@ class DiagnosisAnalysisServiceTests {
         );
 
         verify(storageService).deleteQuietly("/media/results/id_result.jpg");
+        verify(storageService).deleteQuietly("/media/original/id.jpg");
+    }
+
+    @Test
+    void groundTruthMaskIsValidatedSentAndItsMetricsKept() {
+        MockMultipartFile mask = new MockMultipartFile(
+                "groundTruth", "mask.png", "image/png", new byte[]{(byte) 0x89, 'P', 'N', 'G'});
+        AiPredictionResponse prediction = prediction("YOLO26s-seg");
+        com.polyp.polypweb.document.GroundTruthMetrics metrics = new com.polyp.polypweb.document.GroundTruthMetrics();
+        metrics.setDice(0.92);
+        metrics.setIou(0.85);
+        prediction.setGroundTruthMetrics(metrics);
+        when(storageService.storeOriginal(eq(image), any())).thenReturn("/media/original/id.jpg");
+        when(aiInferenceClient.predict(image, mask, "YOLO26s-seg")).thenReturn(prediction);
+        when(storageService.storeResult(eq("overlay"), any())).thenReturn("/media/results/id_result.jpg");
+        when(historyService.saveResult(any(), eq("user-id"))).thenReturn(savedResult());
+
+        service.analyze(image, mask, "YOLO26s-seg", "user-id");
+
+        verify(storageService).validateOriginal(mask);
+        verify(aiInferenceClient, never()).predict(image, "YOLO26s-seg");
+        ArgumentCaptor<DiagnosisResultView> captor = ArgumentCaptor.forClass(DiagnosisResultView.class);
+        verify(historyService).saveResult(captor.capture(), eq("user-id"));
+        assertEquals(0.92, captor.getValue().getGroundTruthMetrics().getDice(), 1e-9);
+    }
+
+    @Test
+    void rejectedGroundTruthMapsTo422AndRollsBack() {
+        MockMultipartFile mask = new MockMultipartFile(
+                "groundTruth", "mask.png", "image/png", new byte[]{(byte) 0x89, 'P', 'N', 'G'});
+        when(storageService.storeOriginal(eq(image), any())).thenReturn("/media/original/id.jpg");
+        when(aiInferenceClient.predict(image, mask, "YOLO26s-seg"))
+                .thenThrow(new AiServiceException("GROUND_TRUTH_REJECTED", "Mặt nạ thật phải cùng kích thước."));
+
+        DiagnosisOperationException error = assertThrows(
+                DiagnosisOperationException.class,
+                () -> service.analyze(image, mask, "YOLO26s-seg", "user-id")
+        );
+
+        assertEquals("GROUND_TRUTH_REJECTED", error.getCode());
+        assertEquals(422, error.getStatus().value());
         verify(storageService).deleteQuietly("/media/original/id.jpg");
     }
 

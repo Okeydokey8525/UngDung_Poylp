@@ -38,6 +38,7 @@ public class ComparisonController {
     public String compare(
             @AuthenticationPrincipal CurrentUserPrincipal principal,
             @RequestParam(value = "image", required = false) MultipartFile image,
+            @RequestParam(value = "groundTruth", required = false) MultipartFile groundTruth,
             RedirectAttributes redirectAttributes) {
         if (image == null || image.isEmpty()) {
             redirectAttributes.addFlashAttribute("flashType", "warning");
@@ -49,8 +50,9 @@ public class ComparisonController {
         }
 
         try {
-            ComparisonResultView comparison =
-                    comparisonService.compare(image, principal.getUserId());
+            ComparisonResultView comparison = groundTruth == null || groundTruth.isEmpty()
+                    ? comparisonService.compare(image, principal.getUserId())
+                    : comparisonService.compare(image, groundTruth, principal.getUserId());
             redirectAttributes.addFlashAttribute("flashType", "info");
             redirectAttributes.addFlashAttribute(
                     "flashMessage",

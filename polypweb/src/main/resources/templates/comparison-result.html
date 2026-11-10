@@ -98,11 +98,24 @@
                     <tr><th scope="row">Confidence cao nhất</th><td th:text="${#numbers.formatDecimal(comparison.baselineResult.confidence, 1, 1) + '%'}">80%</td><td th:text="${#numbers.formatDecimal(comparison.vmambaResult.confidence, 1, 1) + '%'}">80%</td></tr>
                     <tr><th scope="row">Số vùng mask</th><td th:text="${comparison.baselineResult.maskCount}">1</td><td th:text="${comparison.vmambaResult.maskCount}">1</td></tr>
                     <tr><th scope="row">Thời gian xử lý AI</th><td th:text="${#numbers.formatDecimal(comparison.baselineResult.processingTimeMs, 1, 1) + ' ms'}">120 ms</td><td th:text="${#numbers.formatDecimal(comparison.vmambaResult.processingTimeMs, 1, 1) + ' ms'}">210 ms</td></tr>
+                    <tr th:if="${comparison.baselineResult.aiRoundTripMs != null and comparison.vmambaResult.aiRoundTripMs != null}">
+                        <th scope="row" title="Đo tại Spring Boot: gửi ảnh, giải mã, suy luận, vẽ lớp phủ và nhận kết quả từ dịch vụ AI">Thời gian end-to-end (Web ↔ AI)</th>
+                        <td th:text="${#numbers.formatDecimal(comparison.baselineResult.aiRoundTripMs, 1, 1) + ' ms'}">600 ms</td>
+                        <td th:text="${#numbers.formatDecimal(comparison.vmambaResult.aiRoundTripMs, 1, 1) + ' ms'}">700 ms</td>
+                    </tr>
+                    <tr th:if="${comparison.baselineResult.groundTruthMetrics != null and comparison.vmambaResult.groundTruthMetrics != null}"><th scope="row">Dice (mặt nạ thật)</th><td th:text="${comparison.baselineResult.groundTruthMetrics.dice != null ? #numbers.formatDecimal(comparison.baselineResult.groundTruthMetrics.dice, 1, 'POINT', 4, 'COMMA') : '—'}">0,90</td><td th:text="${comparison.vmambaResult.groundTruthMetrics.dice != null ? #numbers.formatDecimal(comparison.vmambaResult.groundTruthMetrics.dice, 1, 'POINT', 4, 'COMMA') : '—'}">0,91</td></tr>
+                    <tr th:if="${comparison.baselineResult.groundTruthMetrics != null and comparison.vmambaResult.groundTruthMetrics != null}"><th scope="row">IoU (mặt nạ thật)</th><td th:text="${comparison.baselineResult.groundTruthMetrics.iou != null ? #numbers.formatDecimal(comparison.baselineResult.groundTruthMetrics.iou, 1, 'POINT', 4, 'COMMA') : '—'}">0,90</td><td th:text="${comparison.vmambaResult.groundTruthMetrics.iou != null ? #numbers.formatDecimal(comparison.vmambaResult.groundTruthMetrics.iou, 1, 'POINT', 4, 'COMMA') : '—'}">0,91</td></tr>
+                    <tr th:if="${comparison.baselineResult.groundTruthMetrics != null and comparison.vmambaResult.groundTruthMetrics != null}"><th scope="row">Precision (mặt nạ thật)</th><td th:text="${comparison.baselineResult.groundTruthMetrics.precision != null ? #numbers.formatDecimal(comparison.baselineResult.groundTruthMetrics.precision, 1, 'POINT', 4, 'COMMA') : '—'}">0,90</td><td th:text="${comparison.vmambaResult.groundTruthMetrics.precision != null ? #numbers.formatDecimal(comparison.vmambaResult.groundTruthMetrics.precision, 1, 'POINT', 4, 'COMMA') : '—'}">0,91</td></tr>
+                    <tr th:if="${comparison.baselineResult.groundTruthMetrics != null and comparison.vmambaResult.groundTruthMetrics != null}"><th scope="row">Recall (mặt nạ thật)</th><td th:text="${comparison.baselineResult.groundTruthMetrics.recall != null ? #numbers.formatDecimal(comparison.baselineResult.groundTruthMetrics.recall, 1, 'POINT', 4, 'COMMA') : '—'}">0,90</td><td th:text="${comparison.vmambaResult.groundTruthMetrics.recall != null ? #numbers.formatDecimal(comparison.vmambaResult.groundTruthMetrics.recall, 1, 'POINT', 4, 'COMMA') : '—'}">0,91</td></tr>
                     <tr><th scope="row">Loại mô hình</th><td>Baseline</td><td>VMamba</td></tr>
                     </tbody>
                 </table>
             </div>
             <p class="comparison-table-note">Bảng chỉ mô tả hai kết quả trên ảnh này; không tự động xác định mô hình tốt hơn.</p>
+            <p class="comparison-table-note" th:if="${comparison.baselineResult.groundTruthMetrics != null}">
+                Dice/IoU tính với mặt nạ thật đã tải lên (viền xanh lá trên ảnh kết quả, viền vàng là dự đoán).
+                Một ảnh không đủ để kết luận; kết quả tổng hợp 20 seed xem ở trang <a th:href="@{/metrics}">Chỉ số</a>.
+            </p>
         </article>
 
         <div class="result-actions comparison-actions">

@@ -28,6 +28,10 @@
                            th:classappend="${activeNav == 'diagnose'} ? 'active' : ''">Phân tích</a>
                     </li>
                     <li class="nav-item" th:if="${currentUser != null}">
+                        <a class="nav-link" th:href="@{/video}"
+                           th:classappend="${activeNav == 'video'} ? 'active' : ''">Video</a>
+                    </li>
+                    <li class="nav-item" th:if="${currentUser != null}">
                         <a class="nav-link" th:href="@{/compare}"
                            th:classappend="${activeNav == 'compare'} ? 'active' : ''">So sánh</a>
                     </li>
@@ -38,6 +42,10 @@
                     <li class="nav-item" th:if="${currentUser != null}">
                         <a class="nav-link" th:href="@{/comparisons}"
                            th:classappend="${activeNav == 'comparisons'} ? 'active' : ''">Lịch sử so sánh</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/metrics}"
+                           th:classappend="${activeNav == 'metrics'} ? 'active' : ''">Chỉ số</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" th:href="@{/about}"

@@ -55,8 +55,10 @@ class InferenceHarness:
         self.started = threading.Event()
         self._guard = threading.Lock()
         self.overrides: dict[str, dict[str, Any]] = {}
+        self.last_ground_truth = None
 
-    def __call__(self, model: FakeModel, device: str, decoded: Image.Image):
+    def __call__(self, model: FakeModel, device: str, decoded: Image.Image, ground_truth=None):
+        self.last_ground_truth = ground_truth
         with self._guard:
             self.call_order.append(model.key)
             self.active += 1

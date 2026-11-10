@@ -9,6 +9,7 @@ import math
 import os
 import re
 import sys
+import tempfile
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -20,18 +21,21 @@ from typing import Any
 import cv2
 import numpy as np
 import torch
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile, status
 from fastapi.exception_handlers import (
     http_exception_handler,
     request_validation_exception_handler,
 )
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel
 
 from mobile_contract import MobileErrorResponse
 from mobile_routes import MobileApiError, create_mobile_router
+from video_processing import ALL_FRAMES, FramePrediction, VideoProcessingError, process_video
+from live_video import LiveJob, LiveJobRegistry
+from ground_truth import binarize_ground_truth, draw_ground_truth, pixel_metrics, predicted_mask
 
 PIL_IMAGE_OPEN = Image.open
 
@@ -85,6 +89,9 @@ MAX_IMAGE_PIXELS = 40_000_000
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png"}
 ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG"}
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
+# 0 = analyse every frame (GPU only); otherwise frames analysed per second of video.
+VIDEO_SAMPLE_FPS_CHOICES = {ALL_FRAMES, 2, 5, 10}
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
 
 
 def positive_int_setting(name: str, default: int) -> int:
@@ -112,6 +119,13 @@ MOBILE_QUEUE_TIMEOUT_SECONDS = positive_float_setting(
 MOBILE_INFERENCE_TIMEOUT_SECONDS = positive_float_setting(
     "AI_INFERENCE_TIMEOUT_SECONDS", 120.0
 )
+# Offline video limits (web only). Longer videos should be cut into parts before upload.
+MAX_VIDEO_FILE_MB = positive_int_setting("AI_VIDEO_MAX_MB", 200)
+MAX_VIDEO_FILE_SIZE = MAX_VIDEO_FILE_MB * 1024 * 1024
+MAX_VIDEO_SECONDS = positive_float_setting("AI_VIDEO_MAX_SECONDS", 300.0)
+# Enough for every frame of a 5-minute 30 FPS video; sampled modes stay far below it.
+MAX_VIDEO_FRAMES = positive_int_setting("AI_VIDEO_MAX_FRAMES", 9000)
+VIDEO_UPLOAD_CHUNK = 1024 * 1024
 
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
@@ -162,6 +176,20 @@ MODEL_CONFIG: dict[str, ModelConfig] = {
 }
 
 
+class GroundTruthMetrics(BaseModel):
+    dice: float | None
+    iou: float | None
+    precision: float | None
+    recall: float | None
+    truePositivePixels: int
+    falsePositivePixels: int
+    falseNegativePixels: int
+    groundTruthPixels: int
+    predictedPixels: int
+    imagePixels: int
+    backgroundImage: bool
+
+
 class PredictionResponse(BaseModel):
     success: bool
     detected: bool
@@ -173,6 +201,7 @@ class PredictionResponse(BaseModel):
     originalFileName: str
     resultImageBase64: str
     message: str
+    groundTruthMetrics: GroundTruthMetrics | None = None
 
 
 def resolve_device() -> str:
@@ -467,12 +496,14 @@ def draw_polyp_contours(image_bgr: np.ndarray, result: Any) -> np.ndarray:
     return outlined
 
 
-def encode_result_image(result: Any) -> str:
+def encode_result_image(result: Any, ground_truth: np.ndarray | None = None) -> str:
     plotted_bgr = result.plot()
     if plotted_bgr is None or plotted_bgr.size == 0:
         raise RuntimeError("The model produced an empty result image")
 
     plotted_bgr = draw_polyp_contours(plotted_bgr, result)
+    if ground_truth is not None:
+        plotted_bgr = draw_ground_truth(plotted_bgr, ground_truth)
     plotted_rgb = np.ascontiguousarray(plotted_bgr[..., ::-1])
     output = BytesIO()
     Image.fromarray(plotted_rgb).save(output, format="JPEG", quality=90)
@@ -483,8 +514,8 @@ def run_inference(
     model: YOLO,
     device: str,
     decoded_image: Image.Image,
+    ground_truth: np.ndarray | None = None,
 ) -> dict[str, Any]:
-    input_array = np.asarray(decoded_image)
     inference_started = perf_counter()
     results = model.predict(
         source=decoded_image,  # PIL preserves RGB; ndarray inputs are interpreted as BGR.
@@ -493,6 +524,9 @@ def run_inference(
         device=device,
         half=False,
         verbose=False,
+        # Masks at the original resolution only when they are scored against a ground truth,
+        # matching the thesis pixel protocol; plain requests keep the measured latency path.
+        retina_masks=ground_truth is not None,
     )
     inference_time_ms = (perf_counter() - inference_started) * 1000
 
@@ -522,14 +556,34 @@ def run_inference(
         names = result.names
         label = names.get(class_id, "polyp") if isinstance(names, dict) else names[class_id]
 
+    metrics = None
+    if ground_truth is not None:
+        height, width = ground_truth.shape
+        metrics = pixel_metrics(predicted_mask(result, height, width), ground_truth)
+
+    render_started = perf_counter()
+    result_image_base64 = encode_result_image(result, ground_truth)
+    render_time_ms = (perf_counter() - render_started) * 1000
+
     return {
+        "groundTruthMetrics": metrics,
         "detected": detected,
         "label": label,
         "confidence": confidence,
         "processingTimeMs": round(inference_time_ms, 3),
+        "renderTimeMs": round(render_time_ms, 3),
         "maskCount": mask_count,
-        "resultImageBase64": encode_result_image(result),
+        "resultImageBase64": result_image_base64,
     }
+
+
+def server_timing_header(stages: dict[str, float | None]) -> str:
+    """Build a W3C Server-Timing header (durations in ms) without changing the JSON contract."""
+    parts = []
+    for name, duration in stages.items():
+        if duration is not None and math.isfinite(duration):
+            parts.append(f"{name};dur={duration:.3f}")
+    return ", ".join(parts)
 
 
 def find_runtime(request: Request, requested_model: str) -> tuple[str, ModelRuntime]:
@@ -556,12 +610,15 @@ def find_runtime(request: Request, requested_model: str) -> tuple[str, ModelRunt
     return canonical_name, runtime
 
 
-@app.post("/predict", response_model=PredictionResponse)
+@app.post("/predict", response_model=PredictionResponse, response_model_exclude_unset=True)
 async def predict(
     request: Request,
+    response: Response,
     image: UploadFile = File(...),
     modelType: str = Form(...),
+    groundTruth: UploadFile | None = File(None),
 ) -> PredictionResponse:
+    request_started = perf_counter()
     requested_model = modelType.strip()
     if not requested_model:
         raise HTTPException(
@@ -589,7 +646,10 @@ async def predict(
             detail="The uploaded image exceeds 10 MB",
         )
 
+    decode_started = perf_counter()
     decoded_image = decode_image(content, image.content_type)
+    decode_time_ms = (perf_counter() - decode_started) * 1000
+    ground_truth = await read_ground_truth(groundTruth, decoded_image.size)
     try:
         async with runtime.lock:
             prediction = await asyncio.to_thread(
@@ -597,6 +657,7 @@ async def predict(
                 runtime.model,
                 request.app.state.device,
                 decoded_image,
+                ground_truth,
             )
     except Exception:
         LOGGER.exception(
@@ -610,7 +671,19 @@ async def predict(
         ) from None
 
     detected = prediction["detected"]
+    response.headers["Server-Timing"] = server_timing_header(
+        {
+            "decode": decode_time_ms,
+            "infer": prediction.get("processingTimeMs"),
+            "render": prediction.get("renderTimeMs"),
+            "total": (perf_counter() - request_started) * 1000,
+        }
+    )
+    extra = {}
+    if prediction.get("groundTruthMetrics") is not None:
+        extra["groundTruthMetrics"] = prediction["groundTruthMetrics"]
     return PredictionResponse(
+        **extra,
         success=True,
         detected=detected,
         label=prediction["label"],
@@ -626,6 +699,364 @@ async def predict(
             else "No suspected polyp region detected"
         ),
     )
+
+
+async def read_ground_truth(
+    upload: UploadFile | None,
+    image_size: tuple[int, int],
+) -> np.ndarray | None:
+    """Decode the optional ground-truth mask (JPG/PNG, same width x height as the image)."""
+    if upload is None or not (upload.filename or "").strip():
+        return None
+    if upload.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="The ground-truth mask must be a JPG, JPEG or PNG image",
+        )
+    content = await upload.read(MAX_FILE_SIZE + 1)
+    await upload.close()
+    if not content:
+        return None
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="The ground-truth mask exceeds 10 MB",
+        )
+    mask_image = decode_image(content, upload.content_type)
+    if mask_image.size != image_size:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"The ground-truth mask is {mask_image.size[0]}x{mask_image.size[1]} "
+                f"but the image is {image_size[0]}x{image_size[1]}"
+            ),
+        )
+    return binarize_ground_truth(mask_image)
+
+
+class VideoTimelinePoint(BaseModel):
+    frameIndex: int
+    timeSec: float
+    detected: bool
+    confidence: float
+    maskCount: int
+
+
+class VideoSegment(BaseModel):
+    startSec: float
+    endSec: float
+    frames: int
+    maxConfidence: float
+
+
+class VideoPredictionResponse(BaseModel):
+    success: bool
+    modelType: str
+    originalFileName: str
+    sourceFps: float
+    sourceFrameCount: int
+    durationSec: float
+    width: int
+    height: int
+    sampleFps: float
+    requestedSampleFps: float
+    sampleRateReduced: bool
+    outputFps: float
+    framesWritten: int
+    framesHeld: int
+    framesProcessed: int
+    framesWithPolyp: int
+    maxConfidence: float
+    processingTimeMs: float
+    averageInferenceMs: float
+    throughputFps: float
+    timeline: list[VideoTimelinePoint]
+    segments: list[VideoSegment]
+    resultVideoBase64: str
+    resultVideoMimeType: str
+    message: str
+
+
+def predict_video_frame(model: YOLO, device: str, frame: Image.Image) -> FramePrediction:
+    """Run one sampled video frame with the same settings as single-image inference.
+
+    ``half`` is left at its float32 default: passing ``half=False`` explicitly makes Ultralytics print a
+    deprecation warning for every frame, which floods the log for long videos.
+    """
+    started = perf_counter()
+    results = model.predict(
+        source=frame,
+        conf=CONFIDENCE_THRESHOLD,
+        imgsz=INFERENCE_IMAGE_SIZE,
+        device=device,
+        verbose=False,
+    )
+    inference_ms = (perf_counter() - started) * 1000
+    if not results:
+        raise RuntimeError("The model returned no result object")
+    result = results[0]
+    boxes = result.boxes
+    masks = result.masks
+    has_masks = masks is not None and masks.data is not None and len(masks.data) > 0
+    has_boxes = boxes is not None and boxes.conf is not None and len(boxes.conf) > 0
+    detected = bool(has_masks and has_boxes)
+    confidence = 0.0
+    if detected:
+        confidences = boxes.conf.detach().cpu()
+        if not bool(torch.isfinite(confidences).all()):
+            raise RuntimeError("The model returned NaN or infinite confidence")
+        confidence = float(confidences.max().item())
+    overlay = draw_polyp_contours(result.plot(), result)
+
+    def render(frame_bgr: np.ndarray) -> np.ndarray:
+        """Draw this frame's masks, boxes and outlines on a later frame of the same video."""
+        if not detected:
+            return frame_bgr
+        return draw_polyp_contours(result.plot(img=np.ascontiguousarray(frame_bgr)), result)
+
+    return FramePrediction(
+        detected=detected,
+        confidence=confidence,
+        mask_count=int(len(masks.data)) if has_masks else 0,
+        overlay_bgr=overlay,
+        inference_ms=inference_ms,
+        render=render,
+    )
+
+
+def check_video_request(request: Request, model_type: str, sample_fps: int, video: UploadFile) -> tuple[str, Any, str, str]:
+    """Shared validation for offline and live video analysis; returns (model, runtime, file name, extension)."""
+    requested_model = model_type.strip()
+    if not requested_model:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="modelType is required")
+    canonical_name, runtime = find_runtime(request, requested_model)
+    if sample_fps not in VIDEO_SAMPLE_FPS_CHOICES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"sampleFps must be one of {sorted(VIDEO_SAMPLE_FPS_CHOICES)}",
+        )
+    if sample_fps == ALL_FRAMES and not str(request.app.state.device).startswith("cuda"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Analysing every frame needs the AI service to run on a GPU",
+        )
+    file_name = Path(video.filename or "uploaded-video.mp4").name
+    extension = Path(file_name).suffix.lower()
+    content_type = (video.content_type or "").lower()
+    if extension not in ALLOWED_VIDEO_EXTENSIONS or not (
+        content_type.startswith("video/") or content_type == "application/octet-stream"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Only MP4, AVI, MOV, MKV and WEBM videos are supported",
+        )
+    return canonical_name, runtime, file_name, extension
+
+
+async def save_video_upload(video: UploadFile, extension: str) -> str:
+    """Stream the upload to a temp file in chunks so a 200 MB video is never held in memory twice."""
+    handle, source_path = tempfile.mkstemp(suffix=extension)
+    try:
+        written = 0
+        with os.fdopen(handle, "wb") as source_file:
+            while chunk := await video.read(VIDEO_UPLOAD_CHUNK):
+                written += len(chunk)
+                if written > MAX_VIDEO_FILE_SIZE:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail=f"The uploaded video exceeds {MAX_VIDEO_FILE_MB} MB",
+                    )
+                source_file.write(chunk)
+        await video.close()
+        if written == 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The uploaded video is empty")
+        return source_path
+    except BaseException:
+        if os.path.exists(source_path):
+            os.remove(source_path)
+        raise
+
+
+def video_response(analysis: Any, canonical_name: str, file_name: str) -> VideoPredictionResponse:
+    seconds = analysis.processing_time_ms / 1000
+    return VideoPredictionResponse(
+        success=True,
+        modelType=canonical_name,
+        originalFileName=file_name,
+        sourceFps=analysis.source_fps,
+        sourceFrameCount=analysis.source_frame_count,
+        durationSec=analysis.duration_sec,
+        width=analysis.width,
+        height=analysis.height,
+        sampleFps=analysis.sample_fps,
+        requestedSampleFps=analysis.requested_sample_fps,
+        sampleRateReduced=analysis.sample_rate_reduced,
+        outputFps=analysis.output_fps,
+        framesWritten=analysis.frames_written,
+        framesHeld=analysis.frames_held,
+        framesProcessed=analysis.frames_processed,
+        framesWithPolyp=analysis.frames_with_polyp,
+        maxConfidence=round(analysis.max_confidence, 4),
+        processingTimeMs=round(analysis.processing_time_ms, 3),
+        averageInferenceMs=round(analysis.inference_time_ms / analysis.frames_processed, 3),
+        throughputFps=round(analysis.frames_processed / seconds, 3) if seconds > 0 else 0.0,
+        timeline=analysis.timeline,
+        segments=analysis.segments,
+        resultVideoBase64=base64.b64encode(analysis.video_bytes).decode("ascii"),
+        resultVideoMimeType=analysis.video_mime_type,
+        message=(
+            "Video inference completed"
+            if analysis.frames_with_polyp
+            else "No suspected polyp region detected in sampled frames"
+        ),
+    )
+
+
+@app.post("/video/predict", response_model=VideoPredictionResponse)
+async def predict_video(
+    request: Request,
+    video: UploadFile = File(...),
+    modelType: str = Form(...),
+    sampleFps: int = Form(5),
+) -> VideoPredictionResponse:
+    """Offline video analysis for the web client: sampled frames, overlay video and a detection timeline."""
+    canonical_name, runtime, file_name, extension = check_video_request(request, modelType, sampleFps, video)
+    source_path = await save_video_upload(video, extension)
+    try:
+        device = request.app.state.device
+
+        def predict_frame(frame: Image.Image) -> FramePrediction:
+            return predict_video_frame(runtime.model, device, frame)
+
+        try:
+            async with runtime.lock:
+                analysis = await asyncio.to_thread(
+                    process_video, source_path, sampleFps, MAX_VIDEO_SECONDS, predict_frame, MAX_VIDEO_FRAMES
+                )
+        except VideoProcessingError as exception:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exception)
+            ) from None
+        except Exception:
+            LOGGER.exception("Video inference failed for %s using %s", file_name, canonical_name)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"{canonical_name} could not process this video",
+            ) from None
+    finally:
+        if os.path.exists(source_path):
+            os.remove(source_path)
+    return video_response(analysis, canonical_name, file_name)
+
+
+# ----------------------------------------------------------------- real-time playback simulation
+LIVE_JOBS = LiveJobRegistry()
+LIVE_STREAM_BOUNDARY = "polypframe"
+LIVE_STREAM_POLL_SEC = 0.01
+
+
+class LiveVideoStart(BaseModel):
+    jobId: str
+    modelType: str
+    originalFileName: str
+    requestedSampleFps: int
+
+
+async def run_live_job(job: LiveJob, runtime: Any, device: str, source_path: str, sample_fps: int) -> None:
+    def predict_frame(frame: Image.Image) -> FramePrediction:
+        return predict_video_frame(runtime.model, device, frame)
+
+    try:
+        async with runtime.lock:
+            analysis = await asyncio.to_thread(
+                process_video, source_path, sample_fps, MAX_VIDEO_SECONDS, predict_frame, MAX_VIDEO_FRAMES,
+                job.push, True,
+            )
+        job.finish(video_response(analysis, job.model_type, job.file_name))
+    except VideoProcessingError as exception:
+        job.fail(str(exception), status.HTTP_422_UNPROCESSABLE_ENTITY)
+    except Exception:
+        LOGGER.exception("Live video job %s failed using %s", job.job_id, job.model_type)
+        job.fail(f"{job.model_type} could not process this video", status.HTTP_500_INTERNAL_SERVER_ERROR)
+    finally:
+        if os.path.exists(source_path):
+            os.remove(source_path)
+
+
+def require_live_job(job_id: str) -> LiveJob:
+    job = LIVE_JOBS.get(job_id) if re.fullmatch(r"[0-9a-f]{32}", job_id or "") else None
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Live video job not found")
+    return job
+
+
+@app.post("/video/live", response_model=LiveVideoStart, status_code=status.HTTP_202_ACCEPTED)
+async def start_live_video(
+    request: Request,
+    video: UploadFile = File(...),
+    modelType: str = Form(...),
+    sampleFps: int = Form(5),
+) -> LiveVideoStart:
+    """Start a real-time playback simulation: frames are analysed and released at the source frame rate.
+
+    Watch it with GET /video/live/{jobId}/stream, follow it with /status and collect the same payload as
+    POST /video/predict from /result once the state is "done".
+    """
+    canonical_name, runtime, file_name, extension = check_video_request(request, modelType, sampleFps, video)
+    source_path = await save_video_upload(video, extension)
+    try:
+        job = LIVE_JOBS.create(canonical_name, file_name, sampleFps)
+    except RuntimeError as exception:
+        os.remove(source_path)
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exception)) from None
+    job.task = asyncio.create_task(
+        run_live_job(job, runtime, request.app.state.device, source_path, sampleFps)
+    )
+    return LiveVideoStart(
+        jobId=job.job_id, modelType=canonical_name, originalFileName=file_name, requestedSampleFps=sampleFps
+    )
+
+
+@app.get("/video/live/{job_id}/status")
+async def live_video_status(job_id: str) -> dict:
+    return require_live_job(job_id).status()
+
+
+@app.get("/video/live/{job_id}/stream")
+async def live_video_stream(job_id: str) -> StreamingResponse:
+    """MJPEG stream of the overlay frames; ends after the last frame of the video."""
+    job = require_live_job(job_id)
+
+    async def frames():
+        sent = 0
+        while True:
+            seq, jpeg = job.latest()
+            if seq != sent and jpeg:
+                sent = seq
+                yield (
+                    f"--{LIVE_STREAM_BOUNDARY}\r\nContent-Type: image/jpeg\r\n"
+                    f"Content-Length: {len(jpeg)}\r\n\r\n"
+                ).encode("ascii") + jpeg + b"\r\n"
+            elif job.finished:
+                break
+            else:
+                await asyncio.sleep(LIVE_STREAM_POLL_SEC)
+
+    return StreamingResponse(
+        frames(),
+        media_type=f"multipart/x-mixed-replace; boundary={LIVE_STREAM_BOUNDARY}",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/video/live/{job_id}/result", response_model=VideoPredictionResponse)
+async def live_video_result(job_id: str) -> VideoPredictionResponse:
+    job = require_live_job(job_id)
+    if job.state == "running":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="The live video job is still running")
+    if job.state == "error":
+        raise HTTPException(status_code=job.error_status or 500, detail=job.error)
+    return job.result
 
 
 app.include_router(

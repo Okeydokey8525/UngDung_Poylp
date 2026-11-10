@@ -55,6 +55,7 @@ public class DiagnosisController {
     public String diagnoseImage(
             @AuthenticationPrincipal CurrentUserPrincipal principal,
             @RequestParam(value = "image", required = false) MultipartFile image,
+            @RequestParam(value = "groundTruth", required = false) MultipartFile groundTruth,
             @RequestParam(value = "modelType", defaultValue = "yolo26s-seg") String modelType,
             RedirectAttributes redirectAttributes) {
         if (image == null || image.isEmpty()) {
@@ -80,7 +81,9 @@ public class DiagnosisController {
 
         DiagnosisResultView savedResult;
         try {
-            savedResult = analysisService.analyze(image, selectedModel, principal.getUserId());
+            savedResult = groundTruth == null || groundTruth.isEmpty()
+                    ? analysisService.analyze(image, selectedModel, principal.getUserId())
+                    : analysisService.analyze(image, groundTruth, selectedModel, principal.getUserId());
         } catch (DiagnosisOperationException exception) {
             LOGGER.warn(
                     "Diagnosis rejected userId={} modelType={} code={}",

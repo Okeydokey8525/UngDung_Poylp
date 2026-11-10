@@ -2,6 +2,7 @@ package com.polyp.polypweb.controller;
 
 import com.polyp.polypweb.view.ResearchMetricView;
 import com.polyp.polypweb.service.DiagnosisModel;
+import com.polyp.polypweb.service.ResearchMetricsService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +13,12 @@ import java.util.stream.Collectors;
 
 @Controller
 public class HomeController {
+
+    private final ResearchMetricsService researchMetricsService;
+
+    public HomeController(ResearchMetricsService researchMetricsService) {
+        this.researchMetricsService = researchMetricsService;
+    }
 
     @GetMapping("/")
     public String home(Model model) {
@@ -29,6 +36,15 @@ public class HomeController {
                 new ResearchMetricView("3 bước", "quy trình trực quan", "Tải ảnh, chọn mô hình và xem kết quả")
         ));
         return "index";
+    }
+
+    @GetMapping("/metrics")
+    public String metrics(Model model) {
+        model.addAttribute("pageTitle", "Chỉ số nghiên cứu");
+        model.addAttribute("activePage", "metrics");
+        model.addAttribute("report", researchMetricsService.report());
+        model.addAttribute("fmt", new ResearchMetricsService.Formatter());
+        return "metrics";
     }
 
     @GetMapping("/about")

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero compact-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Chỉ số nghiên cứu</li>
+                </ol>
+            </nav>
+            <div class="row align-items-end g-3">
+                <div class="col-lg-9">
+                    <span class="eyebrow">Kết quả thực nghiệm</span>
+                    <h1>So sánh YOLO26s-seg và YOLO26s-seg + C2TSVMamba</h1>
+                    <p th:if="${report != null}">
+                        Trung bình ± độ lệch chuẩn qua <strong th:text="${report.seeds}">20</strong> seed huấn luyện
+                        ghép cặp, đánh giá trên tập validation BG20
+                        (<span th:text="${report.validation.images}">160</span> ảnh:
+                        <span th:text="${report.validation.polyp}">120</span> ảnh polyp,
+                        <span th:text="${report.validation.background}">40</span> ảnh nền).
+                        Đây là số liệu thống kê của cả thí nghiệm, khác với kết quả trên từng ảnh ở trang So sánh.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container py-4 metrics-page">
+        <div class="research-alert" role="note" th:if="${report == null}">
+            <i class="bi bi-exclamation-triangle"></i>
+            <div>
+                <strong>Chưa có dữ liệu chỉ số</strong>
+                <span>Thiếu file research/research-metrics.json. Chạy scripts/xuat_chi_so_web.py trong repo nghiên cứu.</span>
+            </div>
+        </div>
+
+        <th:block th:if="${report != null}">
+            <article class="workspace-card comparison-table-card mb-4">
+                <div class="card-heading">
+                    <div><span class="card-step">1</span><h2>Chỉ số phân đoạn theo đối tượng (mask)</h2></div>
+                </div>
+                <div class="table-responsive comparison-table-wrap">
+                    <table class="table comparison-table align-middle">
+                        <thead>
+                        <tr>
+                            <th scope="col">Chỉ số</th>
+                            <th scope="col">YOLO26s-seg</th>
+                            <th scope="col">+ C2TSVMamba</th>
+                            <th scope="col">Chênh lệch</th>
+                            <th scope="col">CI 95%</th>
+                            <th scope="col">p (t ghép cặp)</th>
+                            <th scope="col">Seed TSVM tốt hơn</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="m : ${report.mask}">
+                            <th scope="row" th:text="${m.label}">mAP50–95</th>
+                            <td th:text="${fmt.meanSd(m.baselineMean, m.baselineSd)}">0,7189 ± 0,0118</td>
+                            <td th:text="${fmt.meanSd(m.tsvmMean, m.tsvmSd)}">0,7232 ± 0,0072</td>
+                            <td th:text="${fmt.signed(m.delta, 4)}">+0,0043</td>
+                            <td th:text="'[' + ${fmt.signed(m.ci95Low, 4)} + '; ' + ${fmt.signed(m.ci95High, 4)} + ']'">[…]</td>
+                            <td th:text="${fmt.p(m.pairedTP)}"
+                                th:classappend="${fmt.significant(m.pairedTP)} ? 'fw-bold' : ''">0,061</td>
+                            <td th:text="${m.tsvmBetterSeeds} + '/' + ${report.seeds}">13/20</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="comparison-table-note">
+                    Chỉ số tính bởi Ultralytics tại epoch tốt nhất của từng lượt huấn luyện. mAP50–95 là chỉ số chính
+                    của khóa luận. Chênh lệch = C2TSVMamba − YOLO26s-seg, ghép cặp theo seed.
+                    Nguồn: <code th:text="${report.sources.mask}">bang/04_thong_ke_ghep_cap.csv</code>.
+                </p>
+            </article>
+
+            <article class="workspace-card comparison-table-card mb-4">
+                <div class="card-heading">
+                    <div><span class="card-step">2</span><h2>Chỉ số theo pixel (Dice, IoU, Precision, Recall)</h2></div>
+                </div>
+                <div class="table-responsive comparison-table-wrap">
+                    <table class="table comparison-table align-middle">
+                        <thead>
+                        <tr>
+                            <th scope="col">Chỉ số</th>
+                            <th scope="col">YOLO26s-seg</th>
+                            <th scope="col">+ C2TSVMamba</th>
+                            <th scope="col">Chênh lệch</th>
+                            <th scope="col">p (t ghép cặp)</th>
+                            <th scope="col">Seed TSVM tốt hơn</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="m : ${report.pixel}">
+                            <th scope="row" th:text="${m.label}">Dice</th>
+                            <td th:text="${fmt.meanSd(m.baselineMean, m.baselineSd)}">0,8486 ± 0,0171</td>
+                            <td th:text="${fmt.meanSd(m.tsvmMean, m.tsvmSd)}">0,8540 ± 0,0129</td>
+                            <td th:text="${fmt.signed(m.delta, 4)}">+0,0054</td>
+                            <td th:text="${fmt.p(m.pairedTP)}"
+                                th:classappend="${fmt.significant(m.pairedTP)} ? 'fw-bold' : ''">0,260</td>
+                            <td th:text="${m.tsvmBetterSeeds} + '/' + ${report.seeds}">13/20</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="comparison-table-note">
+                    Tính trên 120 ảnh polyp ở độ phân giải gốc (conf 0,25, gộp mọi mask của ảnh thành một), lấy trung
+                    bình từng ảnh rồi trung bình qua seed. Với phân đoạn nhị phân, F1 theo pixel trùng với Dice.
+                    Nguồn: <code th:text="${report.sources.pixel}">bang/pixel_640/12_pixel_thong_ke.csv</code>.
+                </p>
+
+                <h3 class="h6 mt-4">Tham chiếu với hai mô hình phân đoạn khác</h3>
+                <div class="table-responsive comparison-table-wrap">
+                    <table class="table comparison-table align-middle">
+                        <thead>
+                        <tr>
+                            <th scope="col">Mô hình</th>
+                            <th scope="col">Dice</th>
+                            <th scope="col">IoU</th>
+                            <th scope="col" title="Tỉ lệ ảnh nền (không có polyp) bị dự đoán có ít nhất một pixel polyp">Ảnh nền báo nhầm</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="r : ${report.pixelReference}">
+                            <th scope="row" th:text="${fmt.modelLabel(r.model) == r.model ? r.label : fmt.modelLabel(r.model)}">PraNet</th>
+                            <td th:text="${fmt.meanSd(r.diceMean, r.diceSd)}">0,8856 ± 0,0053</td>
+                            <td th:text="${fmt.meanSd(r.iouMean, r.iouSd)}">0,8212 ± 0,0073</td>
+                            <td th:text="${fmt.percent(r.bgFpImageRate)}">2,8%</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <article class="workspace-card comparison-table-card mb-4">
+                <div class="card-heading">
+                    <div><span class="card-step">3</span><h2>Chi phí tính toán và tốc độ suy luận</h2></div>
+                </div>
+                <div class="table-responsive comparison-table-wrap">
+                    <table class="table comparison-table align-middle">
+                        <thead>
+                        <tr>
+                            <th scope="col">Mô hình</th>
+                            <th scope="col">Số tham số</th>
+                            <th scope="col">GFLOPs (640×640)</th>
+                            <th scope="col">Suy luận GPU, trung vị</th>
+                            <th scope="col">p95</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="c : ${report.cost}">
+                            <th scope="row" th:text="${fmt.modelLabel(c.model)}">YOLO26s-seg</th>
+                            <td th:text="${fmt.millions(c.params)}">11,43 triệu</td>
+                            <td th:text="${fmt.f(c.gflops, 1)}">37,3</td>
+                            <td th:text="${fmt.f(c.gpuMsMedian, 1)} + ' ms'">26,3 ms</td>
+                            <td th:text="${fmt.f(c.gpuMsP95, 1)} + ' ms'">33,2 ms</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="comparison-table-note">
+                    Đo trên <span th:text="${report.cost[0].gpu}">GPU</span>, batch 1, FP32.
+                    Nguồn: <code th:text="${report.sources.cost}">bang/16_flops_do_tre_gpu.csv</code>.
+                </p>
+
+                <h3 class="h6 mt-4">Độ trễ end-to-end qua dịch vụ AI của website</h3>
+                <div class="table-responsive comparison-table-wrap">
+                    <table class="table comparison-table align-middle">
+                        <thead>
+                        <tr>
+                            <th scope="col">Thiết bị</th>
+                            <th scope="col">Mô hình</th>
+                            <th scope="col">Số yêu cầu</th>
+                            <th scope="col">End-to-end, trung vị</th>
+                            <th scope="col">p95</th>
+                            <th scope="col">Riêng suy luận, trung vị</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="e : ${report.endToEnd}">
+                            <td th:text="${e.device == 'gpu' ? 'GPU' : 'CPU'}">GPU</td>
+                            <th scope="row" th:text="${e.model}">YOLO26s-seg</th>
+                            <td th:text="${e.requests}">160</td>
+                            <td th:text="${fmt.f(e.clientMsMedian, 1)} + ' ms'">45,8 ms</td>
+                            <td th:text="${fmt.f(e.clientMsP95, 1)} + ' ms'">71,6 ms</td>
+                            <td th:text="${fmt.f(e.inferMsMedian, 1)} + ' ms'">17,4 ms</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="comparison-table-note">
+                    Gửi lần lượt 160 ảnh validation tới FastAPI qua HTTP (đã khởi động trước), tính từ lúc gửi tới lúc
+                    nhận đủ JSON và ảnh overlay. Nguồn: <code th:text="${report.sources.endToEnd}">bang/19_do_tre_end_to_end.csv</code>.
+                </p>
+            </article>
+
+            <div class="research-alert" role="note">
+                <i class="bi bi-info-circle"></i>
+                <div>
+                    <strong>Cách đọc kết quả</strong>
+                    <span th:if="${!fmt.significant(report.mask[0].pairedTP)}">
+                        C2TSVMamba cho mAP50–95 cao hơn trung bình
+                        <span th:text="${fmt.signed(report.mask[0].delta, 4)}">+0,0043</span> và tốt hơn ở
+                        <span th:text="${report.mask[0].tsvmBetterSeeds}">13</span>/<span th:text="${report.seeds}">20</span> seed,
+                        nhưng p = <span th:text="${fmt.p(report.mask[0].pairedTP)}">0,061</span> nên đây chỉ là xu hướng,
+                        chưa có ý nghĩa thống kê ở mức α = 0,05. Đổi lại, mô hình nặng hơn và suy luận chậm hơn.
+                    </span>
+                    <span th:if="${fmt.significant(report.mask[0].pairedTP)}">
+                        Chênh lệch mAP50–95 có ý nghĩa thống kê ở mức α = 0,05
+                        (p = <span th:text="${fmt.p(report.mask[0].pairedTP)}">0,01</span>).
+                    </span>
+                </div>
+            </div>
+            <p class="text-muted small mt-3">
+                Số liệu xuất từ bảng kết quả của khóa luận ngày <span th:text="${report.generatedOn}">2026-11-09</span>.
+            </p>
+        </th:block>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+</body>
+</html>

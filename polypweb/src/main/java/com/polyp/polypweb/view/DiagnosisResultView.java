@@ -1,5 +1,7 @@
 package com.polyp.polypweb.view;
 
+import com.polyp.polypweb.document.GroundTruthMetrics;
+
 import java.time.LocalDateTime;
 
 public class DiagnosisResultView {
@@ -19,6 +21,8 @@ public class DiagnosisResultView {
     private final boolean historySaved;
     private final String comparisonGroupId;
     private final boolean comparisonResult;
+    private Double aiRoundTripMs;
+    private GroundTruthMetrics groundTruthMetrics;
 
     public DiagnosisResultView(
             String id,
@@ -83,6 +87,24 @@ public class DiagnosisResultView {
         this.historySaved = historySaved;
         this.comparisonGroupId = comparisonGroupId;
         this.comparisonResult = comparisonResult;
+    }
+
+    /** Spring-measured round trip of the FastAPI call (upload, decode, inference, overlay, response); null for older records. */
+    public Double getAiRoundTripMs() {
+        return aiRoundTripMs;
+    }
+
+    public void setAiRoundTripMs(Double aiRoundTripMs) {
+        this.aiRoundTripMs = aiRoundTripMs;
+    }
+
+    /** Pixel metrics against an uploaded ground-truth mask; null when no mask was uploaded. */
+    public GroundTruthMetrics getGroundTruthMetrics() {
+        return groundTruthMetrics;
+    }
+
+    public void setGroundTruthMetrics(GroundTruthMetrics groundTruthMetrics) {
+        this.groundTruthMetrics = groundTruthMetrics;
     }
 
     public String getId() {

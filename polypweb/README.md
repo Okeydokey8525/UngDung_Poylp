@@ -17,13 +17,15 @@ Tài liệu FastAPI: [ai-service/README.md](ai-service/README.md). Tổng quan t
 - Dashboard người dùng và dashboard quản trị.
 - Phân tích ảnh bằng `YOLO26s-seg` hoặc `YOLO26s-TSVM-FP32-seg`.
 - So sánh hai model trên cùng một ảnh.
+- Tùy chọn tải kèm **mặt nạ thật** (JPG/PNG cùng kích thước ảnh) khi phân tích hoặc so sánh: FastAPI tính Dice, IoU, Precision, Recall theo pixel đúng giao thức của khóa luận (mask độ phân giải gốc, ngưỡng 0,5, gộp mọi vùng) và vẽ viền xanh lá của vùng thật; kết quả lưu vào trường `groundTruthMetrics`.
+- Trang công khai **Chỉ số** (`/metrics`): kết quả 20 seed của hai mô hình (mAP50–95, mAP50, Dice, IoU, Precision, Recall, số tham số, GFLOPs, độ trễ GPU và end-to-end). Số liệu đọc từ `src/main/resources/research/research-metrics.json`, sinh bởi `CNTT_KLCN182_PhungTheBao/00_tai_lieu_tong_quan/scripts/xuat_chi_so_web.py` từ các bảng CSV đã xác minh; không gõ tay.
 - Lưu ảnh gốc, overlay và metadata để xem lại sau restart.
 - Lịch sử phân tích và lịch sử so sánh; tìm kiếm, lọc, phân trang, xóa.
 - Hồ sơ, đổi mật khẩu, khóa/mở khóa tài khoản và đổi vai trò.
 - Tải ảnh và xuất metadata theo ownership.
 - Health/Actuator, request ID và các trang Privacy/Terms/Disclaimer.
 
-Dashboard và processing time mô tả hoạt động hệ thống; chúng không phải mAP, Dice, IoU hoặc benchmark khoa học.
+Dashboard và processing time mô tả hoạt động hệ thống; chúng không phải mAP, Dice, IoU hoặc benchmark khoa học. Số liệu khoa học nằm ở trang Chỉ số; Dice/IoU trên một ảnh có mặt nạ thật chỉ là minh họa, không thay cho thống kê 20 seed.
 
 Kết quả mới lưu `imageWidth` và `imageHeight` đọc từ header ảnh gốc, cho cả phân tích đơn và so sánh. Với bản ghi cũ chưa có hai trường này, Web đọc kích thước từ ảnh gốc nếu tệp còn truy cập được; nếu không, giao diện ghi “Chưa xác định”. Việc xem bản ghi cũ không tự ghi lại MongoDB và không gán kích thước giả định. Tên và loại mô hình trên giao diện lấy theo danh mục `DiagnosisModel`; mô hình lịch sử không còn trong danh mục được ghi “Mô hình cũ”.
 
@@ -319,7 +321,8 @@ Web lưu tài khoản, ảnh gốc, overlay, metadata và lịch sử theo chứ
 - Chưa có OAuth, MFA, email verification hoặc reset password qua email.
 - Chưa có rate limiting hoàn chỉnh.
 - CSP còn cho phép `unsafe-inline` để tương thích theme/chart hiện tại.
-- Chưa hỗ trợ video.
+- Video chỉ xử lý offline (tải file lên, tối đa 5 phút / 200 MB / 9.000 khung phân tích); chưa phân tích luồng nội soi thời gian thực. Ở chế độ lấy mẫu, mặt nạ trên khung không được phân tích là mặt nạ của khung phân tích gần nhất, nên có thể lệch tối đa 1/(số khung phân tích mỗi giây) giây khi ống soi di chuyển nhanh.
+- Chưa có đánh giá người dùng hay nhận xét định tính của bác sĩ nội soi.
 - Timing quan sát qua Web không phải benchmark nghiên cứu chuẩn hóa.
 - Không phải thiết bị y tế hoặc hệ thống chẩn đoán lâm sàng.
 
@@ -328,6 +331,6 @@ Web lưu tài khoản, ảnh gốc, overlay, metadata và lịch sử theo chứ
 - `target/`, log và artifact tạm.
 - `storage/`, ảnh nội soi và database dump chứa dữ liệu thật.
 - `.venv`, `__pycache__`, pytest cache.
-- Checkpoint `.pt`.
+- Checkpoint `.pt`, trừ hai trọng số seed 15 đang dùng (`ai-service/models/yolo26s-seg-best.pt`, `yolo26s-tsvm-fp32-best.pt`).
 - Password, credential, `.env` hoặc secret.
 - Keystore/signing file của Mobile.

@@ -5012,3 +5012,142 @@ html[data-bs-theme="light"] input[type="date"] {
 .error-request-id code {
     overflow-wrap: anywhere;
 }
+
+/* ===== Phân tích video ===== */
+.video-preview-wrap {
+    margin-top: 1rem;
+    position: relative;
+}
+
+.video-preview-wrap video,
+.result-video {
+    width: 100%;
+    max-height: 420px;
+    border-radius: 12px;
+    background: #000;
+    display: block;
+}
+
+.video-preview-info,
+.video-note {
+    display: block;
+    margin-top: .5rem;
+    font-size: .85rem;
+    color: var(--pv-muted);
+}
+
+.video-timeline {
+    display: flex;
+    gap: 2px;
+    align-items: stretch;
+    height: 44px;
+    padding: 4px;
+    border: 1px solid var(--pv-border);
+    border-radius: 10px;
+    background: var(--pv-surface-alt);
+    overflow-x: auto;
+}
+
+.timeline-tick {
+    flex: 1 0 4px;
+    min-width: 4px;
+    border: 0;
+    border-radius: 2px;
+    padding: 0;
+    background: var(--pv-border);
+    cursor: pointer;
+}
+
+.timeline-tick.positive {
+    background: var(--pv-danger);
+}
+
+.timeline-tick.current {
+    outline: 2px solid var(--pv-primary);
+    outline-offset: 1px;
+}
+
+.timeline-tick:focus-visible {
+    outline: 2px solid var(--pv-primary);
+}
+
+.timeline-legend {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: .5rem;
+    font-size: .85rem;
+    color: var(--pv-muted);
+}
+
+.legend-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: .35rem;
+    vertical-align: -1px;
+    background: var(--pv-border);
+}
+
+.legend-swatch.positive {
+    background: var(--pv-danger);
+}
+
+/* Optional ground-truth mask upload (diagnose / compare) and research metrics page */
+.ground-truth-field {
+    margin: 1rem 0;
+}
+
+.ground-truth-field .form-text {
+    display: block;
+    margin-top: .35rem;
+}
+
+.metrics-page .comparison-table td,
+.metrics-page .comparison-table th {
+    white-space: nowrap;
+}
+
+/* Real-time playback simulation */
+.live-frame {
+    display: block;
+    width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 10px;
+    background: #0f1720;
+}
+
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #b42318;
+}
+
+.live-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: #d92d20;
+    animation: live-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-dot { animation: none; }
+}
+
+.live-progress {
+    height: 0.5rem;
+}
+
+.live-info-grid {
+    grid-template-columns: 1fr;
+}

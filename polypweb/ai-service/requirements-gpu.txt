@@ -1,0 +1,6 @@
+# PyTorch with CUDA 13.0 for NVIDIA GPUs (tested on RTX 5050 Laptop, driver 595).
+# Install after requirements.txt; it replaces the CPU build of torch/torchvision:
+#   .\.venv\Scripts\python.exe -m pip install -r requirements-gpu.txt
+--index-url https://download.pytorch.org/whl/cu130
+torch==2.13.0+cu130
+torchvision==0.28.0+cu130

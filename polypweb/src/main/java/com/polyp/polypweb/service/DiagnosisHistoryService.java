@@ -43,6 +43,8 @@ public class DiagnosisHistoryService {
                 null,
                 false
         );
+        history.setAiRoundTripMs(result.getAiRoundTripMs());
+        history.setGroundTruthMetrics(result.getGroundTruthMetrics());
         populateImageDimensions(history);
         return toView(repository.save(history));
     }
@@ -97,7 +99,7 @@ public class DiagnosisHistoryService {
     }
 
     public DiagnosisResultView toView(DiagnosisHistory history) {
-        return new DiagnosisResultView(
+        DiagnosisResultView view = new DiagnosisResultView(
                 history.getId(),
                 "/diagnoses/" + history.getId() + "/original-image",
                 "/diagnoses/" + history.getId() + "/result-image",
@@ -114,6 +116,9 @@ public class DiagnosisHistoryService {
                 history.getComparisonGroupId(),
                 history.isComparisonResult()
         );
+        view.setAiRoundTripMs(history.getAiRoundTripMs());
+        view.setGroundTruthMetrics(history.getGroundTruthMetrics());
+        return view;
     }
 
     public void populateImageDimensions(DiagnosisHistory history) {

@@ -113,6 +113,14 @@
                         <p>Hệ thống kiểm tra cả hai checkpoint, sau đó chạy lần lượt
                             <strong>Baseline → VMamba</strong>. Không có fallback sang một mô hình.</p>
                     </div>
+                    <div class="ground-truth-field">
+                        <label class="form-label" for="compareGroundTruthInput">Mặt nạ thật <span class="text-muted">(không bắt buộc)</span></label>
+                        <input class="form-control" type="file" id="compareGroundTruthInput" name="groundTruth"
+                               accept=".jpg,.jpeg,.png,image/jpeg,image/png" aria-describedby="compareGroundTruthInputHelp">
+                        <small id="compareGroundTruthInputHelp" class="form-text">Ảnh đen trắng cùng kích thước với ảnh nội soi
+                            (ví dụ mask của Kvasir-SEG). Nếu có, web tính thêm Dice, IoU, Precision, Recall
+                            và vẽ viền xanh lá của vùng polyp thật.</small>
+                    </div>
                     <button class="btn btn-primary btn-lg w-100 compare-submit" type="submit" id="compareSubmitButton">
                         <span class="button-default"><i class="bi bi-columns-gap"></i> Bắt đầu so sánh</span>
                         <span class="button-loading" hidden>

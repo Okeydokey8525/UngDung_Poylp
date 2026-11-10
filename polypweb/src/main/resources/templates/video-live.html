@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero result-page-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/video}">Phân tích video</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Mô phỏng thời gian thực</li>
+                </ol>
+            </nav>
+            <div class="result-title-row">
+                <div>
+                    <span class="eyebrow">Real-time playback simulation</span>
+                    <div class="result-heading-line">
+                        <h1 th:text="${'Mô phỏng thời gian thực · ' + live.modelType}">Mô phỏng thời gian thực</h1>
+                        <span class="model-family-badge" th:classappend="${live.vmamba ? ' vmamba' : ' baseline'}"
+                              th:text="${live.vmamba ? 'VMamba' : 'Baseline'}">Baseline</span>
+                    </div>
+                    <p th:text="${live.fileName}">clip.mp4</p>
+                </div>
+                <span class="result-status-badge clear live-detect-badge" id="liveDetect" role="status"
+                      aria-live="polite">
+                    <i class="bi bi-hourglass-split"></i> <span>Đang khởi động</span>
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <section class="container result-content" id="livePanel"
+             th:attr="data-status-url=@{/video/live/{id}/status(id=${live.jobId})},
+                      data-result-url=@{/videos/}">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <article class="result-image-card">
+                    <div class="result-card-header">
+                        <div><span class="view-dot segmented"></span><h2>Đang phát và phân đoạn</h2></div>
+                        <span class="live-badge"><span class="live-dot" aria-hidden="true"></span> LIVE</span>
+                    </div>
+                    <img class="live-frame" id="liveFrame" alt="Khung hình hiện tại kèm mặt nạ polyp"
+                         th:src="@{/video/live/{id}/stream(id=${live.jobId})}">
+                    <div class="progress live-progress mt-3" role="progressbar" aria-label="Tiến độ phát video"
+                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="liveProgressBar">
+                        <div class="progress-bar" id="liveProgress" style="width: 0%"></div>
+                    </div>
+                    <p class="video-note mb-0" id="liveTime">0,0 / 0,0 giây</p>
+                </article>
+            </div>
+            <div class="col-lg-4">
+                <article class="workspace-card">
+                    <div class="card-heading">
+                        <div>
+                            <span class="card-step">Trực tiếp</span>
+                            <h2>Theo dõi</h2>
+                        </div>
+                    </div>
+                    <div class="result-info-grid live-info-grid">
+                        <div class="info-item">
+                            <span><i class="bi bi-speedometer2"></i> Tốc độ so với thời gian thực</span>
+                            <strong id="liveSpeed">–</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-collection"></i> Khung đã phát</span>
+                            <strong id="liveFrames">0</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-bullseye"></i> Khung phân tích có polyp</span>
+                            <strong id="livePositive">0</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-sliders"></i> Chế độ phân tích</span>
+                            <strong th:text="${live.requestedSampleFps == 0 ? 'Tất cả khung'
+                                : live.requestedSampleFps + ' khung/giây'}">5 khung/giây</strong>
+                        </div>
+                    </div>
+                    <p class="text-danger mt-3 mb-0" id="liveError" hidden></p>
+                    <p class="mt-3 mb-2">Video đã quay được phát lại đúng tốc độ gốc; mỗi khung được phân đoạn và hiện
+                        ngay. Khi phát hết, kết quả tự lưu vào lịch sử và trang chuyển sang phần xem lại.</p>
+                    <p class="text-muted small mb-0">Đây là mô phỏng trên video đã quay, chưa phải hệ thống thời gian
+                        thực gắn vào thiết bị nội soi. Kết quả chỉ để tham khảo, không thay thế chẩn đoán của bác sĩ.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+<script th:src="@{/js/video-live.js}"></script>
+</body>
+</html>

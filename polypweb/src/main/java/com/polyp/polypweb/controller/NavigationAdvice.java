@@ -33,6 +33,9 @@ public class NavigationAdvice {
         if ("/diagnose".equals(path) || path.startsWith("/diagnoses/")) {
             return "diagnose";
         }
+        if ("/video".equals(path) || path.startsWith("/videos/")) {
+            return "video";
+        }
         if ("/compare".equals(path)) {
             return "compare";
         }
@@ -41,6 +44,9 @@ public class NavigationAdvice {
         }
         if ("/history".equals(path)) {
             return "history";
+        }
+        if ("/metrics".equals(path)) {
+            return "metrics";
         }
         if ("/about".equals(path)) {
             return "about";

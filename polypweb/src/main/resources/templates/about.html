@@ -27,7 +27,7 @@
                         <ul>
                             <li>Giao diện Spring Boot + Thymeleaf</li>
                             <li>Metadata lịch sử thật trong MongoDB</li>
-                            <li>Hai checkpoint YOLO26s-seg và TSVM FP32</li>
+                            <li>Hai checkpoint YOLO26s-seg và TSVM FP32 (cùng seed 15)</li>
                         </ul>
                     </div>
                 </div>
@@ -54,6 +54,11 @@
                     <p>Nghiên cứu tập trung khảo sát phương pháp tích hợp C2TSVMamba vào YOLO26-seg trong bài toán
                         phân đoạn polyp trên ảnh nội soi. Website hiện chạy thật cả checkpoint
                         <code>YOLO26s-seg</code> và <code>YOLO26s-TSVM-FP32-seg</code> trên cùng API contract.</p>
+                    <p>Hai checkpoint lấy từ cùng một lượt huấn luyện ghép cặp, seed 15. Quy tắc chọn: trong 20 seed
+                        (0–19), chọn seed có chênh lệch mask mAP50–95 giữa hai mô hình gần trung vị nhất (trung vị
+                        +0,0039; seed 15 là +0,0037). Ở seed này, YOLO26s-seg đạt 0,7176 và TSVM đạt 0,7213, đều gần
+                        trung vị của từng mô hình, nên ví dụ so sánh trên website phản ánh mức chênh lệch điển hình,
+                        không thiên vị mô hình nào. Đây vẫn là minh họa trên từng ảnh, không thay cho kết quả thống kê.</p>
                     <div class="problem-card">
                         <i class="bi bi-bullseye"></i>
                         <div>

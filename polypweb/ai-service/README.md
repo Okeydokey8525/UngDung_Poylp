@@ -21,7 +21,7 @@ Registry trong `main.py` có đúng hai model key:
 
 Checkpoint TSVM FP32 cần các lớp trong `ultralytics.nn.modules.topology_shape_vmamba` được đăng ký trước khi tải. Bản mã vendored được sao chép từ thực nghiệm FP32; khối `C2TSVMamba` thay C2PSA ở layer 10. Không dùng `VMambaBlock` của nghiên cứu Nano cũ cho checkpoint này.
 
-Hai trọng số mặc định là `best.pt` của seed 0 từ đúng hai thư mục thực nghiệm Baseline và TSVM_FP32. Nguồn và mã băm nằm trong `models/experiment_manifest.json`. Khi tải, dịch vụ kiểm tra task segment, lớp polyp và sự hiện diện của C2TSVMamba đối với mô hình cải tiến. Cả hai mô hình chạy float32 với `half=False`. Ảnh RGB sau giải mã được truyền dưới dạng PIL để Ultralytics không hiểu nhầm thành BGR.
+Hai trọng số mặc định là `best.pt` của **seed 15** từ đúng hai thư mục thực nghiệm Baseline và TSVM_FP32. Quy tắc chọn: cùng một seed cho hai mô hình, lấy seed có chênh lệch mask mAP50–95 (TSVM − Baseline, tại epoch của `best.pt`) gần trung vị 20 seed nhất (trung vị +0,0039; seed 15 là +0,0037). Bản seed 0 cũ được giữ cục bộ với tiền tố `seed0__`, không được nạp. Nguồn và mã băm nằm trong `models/experiment_manifest.json`. Khi tải, dịch vụ kiểm tra task segment, lớp polyp và sự hiện diện của C2TSVMamba đối với mô hình cải tiến. Cả hai mô hình chạy float32 với `half=False`. Ảnh RGB sau giải mã được truyền dưới dạng PIL để Ultralytics không hiểu nhầm thành BGR.
 
 Không commit checkpoint hoặc đường dẫn tuyệt đối của máy cá nhân.
 
@@ -154,6 +154,21 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
+
+Máy có GPU NVIDIA: tạo môi trường riêng ở đường dẫn ngắn. Gói PyTorch CUDA có tên file dài; cài vào `ai-service\.venv` vượt giới hạn 260 ký tự của Windows (`WinError 206`).
+
+```powershell
+python -m venv C:\venv_polyp_ai
+C:\venv_polyp_ai\Scripts\python.exe -m pip install -r requirements-gpu.txt
+C:\venv_polyp_ai\Scripts\python.exe -m pip install fastapi==0.139.2 uvicorn==0.51.0 python-multipart==0.0.32 numpy==2.2.6 pillow==11.3.0 opencv-python==4.12.0.88 ultralytics==8.4.127
+C:\venv_polyp_ai\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000
+```
+
+Video kết quả được ghi MP4 H.264 bằng Media Foundation của Windows (khoảng 3 ms/khung); nếu không mở được bộ mã này thì tự chuyển sang WebM VP8 (khoảng 33 ms/khung). Ép định dạng bằng `AI_VIDEO_OUTPUT=mp4|webm`.
+
+Mô phỏng thời gian thực (web): `POST /video/live` (cùng tham số với `/video/predict`) trả `jobId` ngay rồi phân tích nền, phát khung đúng tốc độ video gốc. Xem bằng `GET /video/live/{jobId}/stream` (MJPEG), theo dõi bằng `/status` (tiến độ, `realtimeFactor`, khung hiện tại có polyp), lấy kết quả như `/video/predict` bằng `/result` khi `state` là `done`. Đây là mô phỏng trên video đã quay, không phải hệ thống gắn vào máy nội soi.
+
+`AI_DEVICE=auto` (mặc định) chọn `cuda:0` khi PyTorch thấy GPU, nếu không thì `cpu`; `/health` trả trường `device`. Chế độ video `sampleFps=0` (tất cả khung) bị từ chối với 422 khi chạy CPU.
 
 Dependency runtime thực tế gồm FastAPI, Uvicorn, python-multipart, NumPy, Pillow, OpenCV, PyTorch, TorchVision và Ultralytics.
 

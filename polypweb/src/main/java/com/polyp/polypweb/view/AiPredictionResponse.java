@@ -1,5 +1,7 @@
 package com.polyp.polypweb.view;
 
+import com.polyp.polypweb.document.GroundTruthMetrics;
+
 public class AiPredictionResponse {
 
     private boolean success;
@@ -12,8 +14,28 @@ public class AiPredictionResponse {
     private String originalFileName;
     private String resultImageBase64;
     private String message;
+    private Double aiRoundTripMs;
+    private GroundTruthMetrics groundTruthMetrics;
 
     public AiPredictionResponse() {
+    }
+
+    /** Spring-measured round trip of the FastAPI call (upload, decode, inference, overlay, response); null for older records. */
+    public Double getAiRoundTripMs() {
+        return aiRoundTripMs;
+    }
+
+    public void setAiRoundTripMs(Double aiRoundTripMs) {
+        this.aiRoundTripMs = aiRoundTripMs;
+    }
+
+    /** Pixel metrics against an uploaded ground-truth mask; null when no mask was uploaded. */
+    public GroundTruthMetrics getGroundTruthMetrics() {
+        return groundTruthMetrics;
+    }
+
+    public void setGroundTruthMetrics(GroundTruthMetrics groundTruthMetrics) {
+        this.groundTruthMetrics = groundTruthMetrics;
     }
 
     public boolean isSuccess() {

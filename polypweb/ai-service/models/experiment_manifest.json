@@ -1,6 +1,6 @@
 {
   "experiment": "Kvasir BG20 20 seeds FP32",
-  "selection_rule": "Same seed for both models (one matched pair). Chosen seed: paired delta (TSVM - Baseline) of mask mAP50-95 at the best.pt epoch closest to the median delta over seeds 0-19 (median +0.0039; seed 15: +0.0037). Source: Test_Mau/00_tai_lieu_tong_quan/bang/02_ket_qua_tung_seed.csv, column fitness_epoch_mask_map50_95. Replaces seed 0 (2026-11-09), where TSVM was below Baseline (0.7245 vs 0.7366) and not representative.",
+  "selection_rule": "Same seed for both models (one matched pair). Chosen seed: paired delta (TSVM - Baseline) of mask mAP50-95 at the best.pt epoch closest to the median delta over seeds 0-19 (median +0.0039; seed 15: +0.0037). Source: CNTT_KLCN182_PhungTheBao/00_tai_lieu_tong_quan/bang/02_ket_qua_tung_seed.csv, column fitness_epoch_mask_map50_95. Replaces seed 0 (2026-11-09), where TSVM was below Baseline (0.7245 vs 0.7366) and not representative.",
   "models": [
     {
       "model_key": "YOLO26s-seg",

@@ -22,6 +22,8 @@ public class AiServiceProperties {
 
     @NotNull
     private Duration healthTimeout = Duration.ofSeconds(2);
+    @NotNull
+    private Duration videoReadTimeout = Duration.ofMinutes(30);
 
     public URI getBaseUrl() {
         return baseUrl;
@@ -53,6 +55,14 @@ public class AiServiceProperties {
 
     public void setHealthTimeout(Duration healthTimeout) {
         this.healthTimeout = requirePositive(healthTimeout, "health-timeout");
+    }
+
+    public Duration getVideoReadTimeout() {
+        return videoReadTimeout;
+    }
+
+    public void setVideoReadTimeout(Duration videoReadTimeout) {
+        this.videoReadTimeout = requirePositive(videoReadTimeout, "video-read-timeout");
     }
 
     private Duration requirePositive(Duration value, String name) {

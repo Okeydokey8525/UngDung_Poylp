@@ -41,6 +41,15 @@ public class DiagnosisAnalysisService {
             MultipartFile image,
             String requestedModelType,
             String userId) {
+        return analyze(image, null, requestedModelType, userId);
+    }
+
+    /** Like {@link #analyze(MultipartFile, String, String)}, also scoring the result against a ground-truth mask. */
+    public DiagnosisResultView analyze(
+            MultipartFile image,
+            MultipartFile groundTruth,
+            String requestedModelType,
+            String userId) {
         DiagnosisModel model = DiagnosisModel.fromModelType(requestedModelType)
                 .orElseThrow(() -> new DiagnosisOperationException(
                         HttpStatus.BAD_REQUEST,
@@ -48,16 +57,19 @@ public class DiagnosisAnalysisService {
                         "Mô hình được chọn không được hỗ trợ."
                 ));
         String safeFileName = validateUpload(image);
+        boolean withGroundTruth = ModelComparisonService.hasGroundTruth(groundTruth);
+        if (withGroundTruth) {
+            validateGroundTruth(groundTruth);
+        }
         UUID storageId = UUID.randomUUID();
         String originalImageUrl = null;
         String resultImageUrl = null;
 
         try {
             originalImageUrl = storageService.storeOriginal(image, storageId);
-            AiPredictionResponse prediction = aiInferenceClient.predict(
-                    image,
-                    model.getModelType()
-            );
+            AiPredictionResponse prediction = withGroundTruth
+                    ? aiInferenceClient.predict(image, groundTruth, model.getModelType())
+                    : aiInferenceClient.predict(image, model.getModelType());
             if (!model.getModelType().equals(prediction.getModelType())) {
                 throw new DiagnosisOperationException(
                         HttpStatus.BAD_GATEWAY,
@@ -127,6 +139,19 @@ public class DiagnosisAnalysisService {
         }
     }
 
+    private void validateGroundTruth(MultipartFile groundTruth) {
+        try {
+            ImageUploadValidator.validate(groundTruth, storageService);
+        } catch (com.polyp.polypweb.exception.UploadValidationException exception) {
+            throw new DiagnosisOperationException(
+                    exception.getStatus(),
+                    "INVALID_GROUND_TRUTH",
+                    "Mặt nạ thật: " + exception.getMessage(),
+                    exception
+            );
+        }
+    }
+
     private DiagnosisResultView toResult(
             AiPredictionResponse prediction,
             String fileName,
@@ -142,7 +167,7 @@ public class DiagnosisAnalysisService {
         double processingTime = Double.isFinite(prediction.getProcessingTimeMs())
                 ? Math.max(0, prediction.getProcessingTimeMs())
                 : 0;
-        return new DiagnosisResultView(
+        DiagnosisResultView view = new DiagnosisResultView(
                 null,
                 originalImageUrl,
                 resultImageUrl,
@@ -159,10 +184,19 @@ public class DiagnosisAnalysisService {
                 null,
                 false
         );
+        view.setAiRoundTripMs(prediction.getAiRoundTripMs());
+        view.setGroundTruthMetrics(prediction.getGroundTruthMetrics());
+        return view;
     }
 
     private DiagnosisOperationException mapAiFailure(AiServiceException exception) {
         return switch (exception.getCode()) {
+            case "GROUND_TRUTH_REJECTED" -> new DiagnosisOperationException(
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    "GROUND_TRUTH_REJECTED",
+                    exception.getMessage(),
+                    exception
+            );
             case "MODEL_UNAVAILABLE" -> new DiagnosisOperationException(
                     HttpStatus.SERVICE_UNAVAILABLE,
                     "MODEL_UNAVAILABLE",

@@ -49,7 +49,7 @@ flowchart LR
 
 `YOLO26s-TSVM-FP32-seg` dùng đúng khối `C2TSVMamba` của thực nghiệm BG20, thay `C2PSA` tại layer 10. Khối kết hợp SS2D bốn hướng, nhánh hình dạng đa tỉ lệ và có hướng, cổng guidance `F_M * (1 + G)` và residual scaling. Mã được lưu tại `custom_ultralytics/topology_shape_vmamba.py` và đăng ký theo đường dẫn module trong checkpoint trước khi tải trọng số.
 
-Hai checkpoint mặc định lấy từ seed 0 của thực nghiệm YOLO26s-seg và TSVM FP32, cùng một seed để minh họa. `models/experiment_manifest.json` lưu nguồn và SHA-256. Việc chọn `best.pt` theo fitness của Ultralytics khác việc lấy epoch có mask mAP cao nhất trong bảng tổng hợp 20 seed. Ứng dụng ép mô hình về float32 và suy luận với `half=False`; không dùng lại trọng số TSVM cũ không có FP32.
+Hai checkpoint mặc định lấy từ **seed 15** của thực nghiệm YOLO26s-seg và TSVM FP32, cùng một seed (một cặp ghép). Seed 15 được chọn theo quy tắc: chênh lệch mask mAP50–95 giữa hai mô hình gần trung vị 20 seed nhất (+0,0037 so với trung vị +0,0039). Seed 0 trước đây không đại diện vì ở seed đó TSVM thấp hơn baseline (0,7245 so với 0,7366). `models/experiment_manifest.json` lưu nguồn và SHA-256. Việc chọn `best.pt` theo fitness của Ultralytics khác việc lấy epoch có mask mAP cao nhất trong bảng tổng hợp 20 seed. Ứng dụng ép mô hình về float32 và suy luận với `half=False`; không dùng lại trọng số TSVM cũ không có FP32.
 
 Hai model key/checkpoint mặc định trong registry:
 
@@ -101,6 +101,8 @@ Các thư mục `.venv`, `build`, `target`, dữ liệu `storage`, checkpoint, k
 - Dashboard theo tài khoản và dashboard quản trị.
 - Phân tích một ảnh bằng Baseline hoặc VMamba.
 - So sánh tuần tự hai mô hình trên cùng ảnh.
+- Phân tích video ngoại tuyến (MP4, AVI, MOV, MKV, WEBM; tối đa 200 MB, 5 phút, 9.000 khung phân tích; FastAPI chỉnh bằng `AI_VIDEO_MAX_MB`, `AI_VIDEO_MAX_SECONDS`, `AI_VIDEO_MAX_FRAMES`): phân tích 2, 5, 10 khung/giây hoặc tất cả khung (chỉ khi FastAPI chạy GPU; tự giảm khi vượt giới hạn khung). Video WebM kết quả giữ đủ khung và tốc độ của video gốc; khung không được phân tích dùng lại mặt nạ của khung phân tích gần nhất. Kèm dòng thời gian các khung có polyp và lịch sử video. Chế độ **mô phỏng thời gian thực**: phát lại video đã quay đúng tốc độ gốc, xem trực tiếp mặt nạ trong lúc phân tích (luồng MJPEG), tốc độ so với thời gian thực và đèn báo polyp; phát xong tự lưu vào lịch sử.
+- Hiển thị thời gian end-to-end (Web ↔ AI) bên cạnh thời gian suy luận.
 - Lưu ảnh gốc, overlay và metadata; xem lại kết quả sau restart.
 - Lịch sử phân tích và lịch sử so sánh với tìm kiếm/lọc/phân trang.
 - Hồ sơ, đổi mật khẩu, quản lý tài khoản và vai trò.
@@ -175,7 +177,8 @@ Tài liệu đầy đủ: [FastAPI AI Service README](polypweb/ai-service/README
 | Method | Endpoint | Mục đích |
 |---|---|---|
 | `GET` | `/health` | Health service, device và registry model |
-| `POST` | `/predict` | Multipart `image` + `modelType`; trả metadata và JPEG overlay Base64 |
+| `POST` | `/predict` | Multipart `image` + `modelType`; trả metadata và JPEG overlay Base64; header `Server-Timing` ghi thời gian giải mã, suy luận, vẽ lớp phủ, tổng |
+| `POST` | `/video/predict` | Multipart `video` + `modelType` + `sampleFps` (2/5/10, hoặc 0 = tất cả khung, cần GPU); trả dòng thời gian, các đoạn có polyp và video WebM có lớp phủ (Base64) |
 
 ### Contract Mobile Direct AI
 
@@ -373,6 +376,8 @@ Không mô tả PolypVision là medical device và không dùng kết quả mộ
 - Web dùng local file storage; chưa có object storage mặc định.
 - Timeout mobile không thể hard-cancel an toàn một worker/GPU inference đang chạy trong thread.
 - Quan sát thời gian xử lý trên Web/Mobile phụ thuộc CPU/GPU/mạng và không phải benchmark khoa học.
+- Video chỉ xử lý ngoại tuyến từ tệp đã ghi, chưa nhận luồng trực tiếp từ máy nội soi; mỗi khung được phân tích độc lập.
+- Chưa có đánh giá định tính của bác sĩ nội soi.
 - Hệ thống không phải công cụ chẩn đoán y tế.
 
 ## 16. Hướng phát triển

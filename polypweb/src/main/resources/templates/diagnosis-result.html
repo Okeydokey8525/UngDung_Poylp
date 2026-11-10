@@ -101,6 +101,11 @@
                             <span><i class="bi bi-stopwatch"></i> Thời gian xử lý AI</span>
                             <strong th:text="${#numbers.formatDecimal(result.processingTimeMs, 1, 1) + ' ms'}">118,6 ms</strong>
                         </div>
+                        <div class="info-item" th:if="${result.aiRoundTripMs != null}"
+                             title="Đo tại Spring Boot: gửi ảnh, giải mã, suy luận, vẽ lớp phủ và nhận kết quả từ dịch vụ AI">
+                            <span><i class="bi bi-arrow-left-right"></i> Thời gian end-to-end (Web ↔ AI)</span>
+                            <strong th:text="${#numbers.formatDecimal(result.aiRoundTripMs, 1, 1) + ' ms'}">640,2 ms</strong>
+                        </div>
                         <div class="info-item">
                             <span><i class="bi bi-bounding-box-circles"></i> Số vùng mask</span>
                             <strong th:text="${result.maskCount}">1</strong>
@@ -137,6 +142,30 @@
                 </article>
             </div>
         </div>
+
+        <article class="workspace-card mt-4 ground-truth-card" th:if="${result.groundTruthMetrics != null}"
+                 th:with="gtm=${result.groundTruthMetrics}">
+            <div class="card-heading">
+                <div><span class="card-step">Mặt nạ thật</span><h2>So với vùng polyp do chuyên gia khoanh</h2></div>
+            </div>
+            <div class="result-info-grid" th:if="${!gtm.backgroundImage}">
+                <div class="info-item"><span>Dice (F1 theo pixel)</span><strong th:text="${gtm.dice != null ? #numbers.formatDecimal(gtm.dice, 1, 'POINT', 4, 'COMMA') : '—'}">0,9206</strong></div>
+                <div class="info-item"><span>IoU</span><strong th:text="${gtm.iou != null ? #numbers.formatDecimal(gtm.iou, 1, 'POINT', 4, 'COMMA') : '—'}">0,8529</strong></div>
+                <div class="info-item"><span>Precision</span><strong th:text="${gtm.precision != null ? #numbers.formatDecimal(gtm.precision, 1, 'POINT', 4, 'COMMA') : '—'}">0,9812</strong></div>
+                <div class="info-item"><span>Recall</span><strong th:text="${gtm.recall != null ? #numbers.formatDecimal(gtm.recall, 1, 'POINT', 4, 'COMMA') : '—'}">0,8671</strong></div>
+            </div>
+            <p th:if="${gtm.backgroundImage}">Mặt nạ thật không có vùng polyp (ảnh nền), nên Dice/IoU không xác định.
+                Mô hình dự đoán <strong th:text="${gtm.predictedPixels}">0</strong> pixel polyp
+                <span th:text="${gtm.predictedPixels == 0 ? '(đúng: không báo nhầm).' : '(báo nhầm).'}"></span></p>
+            <p class="comparison-table-note">
+                Pixel đúng (TP) <span th:text="${gtm.truePositivePixels}">0</span> ·
+                thừa (FP) <span th:text="${gtm.falsePositivePixels}">0</span> ·
+                sót (FN) <span th:text="${gtm.falseNegativePixels}">0</span> ·
+                vùng polyp thật <span th:text="${gtm.groundTruthPixels}">0</span> pixel.
+                Trên ảnh kết quả: viền vàng là dự đoán, viền xanh lá là mặt nạ thật.
+                Cách tính giống phần đánh giá theo pixel của khóa luận (mask độ phân giải gốc, ngưỡng 0,5, gộp mọi vùng).
+            </p>
+        </article>
 
         <div class="result-actions">
             <a class="btn btn-primary" th:href="@{/diagnose}">

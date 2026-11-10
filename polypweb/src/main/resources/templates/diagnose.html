@@ -107,6 +107,14 @@
                             <p>Giai đoạn 3D chạy thật <code>YOLO26s-seg</code> và
                                 <code>YOLO26s-TSVM-FP32-seg</code> với cùng ngưỡng confidence và kích thước đầu vào.</p>
                         </div>
+                        <div class="ground-truth-field">
+                            <label class="form-label" for="groundTruthInput">Mặt nạ thật <span class="text-muted">(không bắt buộc)</span></label>
+                            <input class="form-control" type="file" id="groundTruthInput" name="groundTruth"
+                                   accept=".jpg,.jpeg,.png,image/jpeg,image/png" aria-describedby="groundTruthInputHelp">
+                            <small id="groundTruthInputHelp" class="form-text">Ảnh đen trắng cùng kích thước với ảnh nội soi
+                                (ví dụ mask của Kvasir-SEG). Nếu có, web tính thêm Dice, IoU, Precision, Recall
+                                và vẽ viền xanh lá của vùng polyp thật.</small>
+                        </div>
                         <button class="btn btn-primary btn-lg w-100 analyze-button" type="submit" id="analyzeButton">
                             <span class="button-default">
                                 <i class="bi bi-stars"></i> Bắt đầu phân tích

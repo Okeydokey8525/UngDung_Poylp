@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${pageTitle})}"></head>
+<body>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<main id="main-content" class="page-main" tabindex="-1">
+    <section class="page-hero result-page-hero">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/video}">Phân tích video</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Kết quả</li>
+                </ol>
+            </nav>
+            <div class="result-title-row">
+                <div>
+                    <span class="eyebrow">Mã lượt phân tích · <span th:text="${analysis.id}">id</span></span>
+                    <div class="result-heading-line">
+                        <h1 th:text="${'Kết quả video ' + analysis.modelType}">Kết quả video YOLO26s-seg</h1>
+                        <span class="model-family-badge" th:classappend="${vmambaModel ? ' vmamba' : ' baseline'}"
+                              th:text="${vmambaModel ? 'VMamba' : 'Baseline'}">Baseline</span>
+                    </div>
+                    <p th:text="${analysis.fileName}">clip.mp4</p>
+                </div>
+                <span class="result-status-badge detected" th:if="${analysis.framesWithPolyp > 0}">
+                    <i class="bi bi-exclamation-diamond-fill"></i>
+                    <span th:text="${analysis.segments.size() + ' đoạn có vùng nghi ngờ polyp'}">2 đoạn</span>
+                </span>
+                <span class="result-status-badge clear" th:unless="${analysis.framesWithPolyp > 0}">
+                    <i class="bi bi-check-circle-fill"></i>
+                    Không phát hiện vùng nghi ngờ trong các khung đã phân tích
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <section class="container result-content">
+        <div class="image-comparison-grid">
+            <article class="result-image-card">
+                <div class="result-card-header">
+                    <div><span class="view-dot original"></span><h2>Video gốc</h2></div>
+                    <span>Input</span>
+                </div>
+                <video class="result-video" controls preload="metadata" playsinline
+                       th:src="@{/videos/{id}/original-video(id=${analysis.id})}">
+                    Trình duyệt không phát được định dạng video gốc này.
+                </video>
+                <p class="video-note">Một số định dạng (AVI, MKV) có thể không phát được trên trình duyệt; video
+                    kết quả bên cạnh luôn ở định dạng trình duyệt phát được (MP4 H.264 hoặc WebM).</p>
+            </article>
+            <article class="result-image-card">
+                <div class="result-card-header">
+                    <div><span class="view-dot segmented"></span><h2>Video sau phân đoạn</h2></div>
+                    <a class="btn btn-sm btn-outline-primary"
+                       th:href="@{/videos/{id}/result-video(id=${analysis.id})}" download>
+                        <i class="bi bi-download"></i> <span th:text="${'Tải ' + analysis.resultFormat}">Tải MP4</span>
+                    </a>
+                </div>
+                <video id="resultVideo" class="result-video" controls preload="metadata" playsinline
+                       th:src="@{/videos/{id}/result-video(id=${analysis.id})}"
+                       th:attr="data-sample-fps=${analysis.sampleFps}">
+                </video>
+                <p class="video-note" th:if="${analysis.outputFps == 0}"
+                   th:text="${'Phát ở ' + #numbers.formatDecimal(analysis.sampleFps, 1, 1)
+                    + ' khung/giây (chỉ các khung đã phân tích).'}">Phát ở 5 khung/giây.</p>
+                <p class="video-note" th:if="${analysis.allFrames}"
+                   th:text="${'Phát ở ' + #numbers.formatDecimal(analysis.outputFps, 1, 1)
+                    + ' khung/giây như video gốc; mô hình đã phân tích mọi khung.'}">Phân tích mọi khung.</p>
+                <p class="video-note" th:if="${analysis.outputFps > 0 and !analysis.allFrames}"
+                   th:text="${'Phát ở ' + #numbers.formatDecimal(analysis.outputFps, 1, 1)
+                    + ' khung/giây như video gốc. Mô hình phân tích '
+                    + #numbers.formatDecimal(analysis.sampleFps, 1, 1)
+                    + ' khung/giây; các khung ở giữa dùng lại mặt nạ của khung phân tích gần nhất.'}">
+                    Phát như video gốc.</p>
+                <p class="video-note text-warning-emphasis" th:if="${analysis.sampleRateReduced}"
+                   th:text="${'Đã chọn ' + #numbers.formatDecimal(analysis.requestedSampleFps, 1, 0)
+                    + ' khung/giây nhưng video dài nên hệ thống giảm xuống '
+                    + #numbers.formatDecimal(analysis.sampleFps, 1, 1)
+                    + ' khung/giây để không vượt giới hạn số khung phân tích và vẫn phủ hết video.'}">Đã giảm tốc độ lấy mẫu.</p>
+            </article>
+        </div>
+
+        <article class="workspace-card mt-4">
+            <div class="card-heading">
+                <div>
+                    <span class="card-step">Dòng thời gian</span>
+                    <h2>Khung có vùng nghi ngờ polyp</h2>
+                </div>
+                <span class="file-requirement">Bấm vào một vạch để tua video kết quả tới khung đó</span>
+            </div>
+            <div class="video-timeline" role="list" aria-label="Kết quả từng khung đã phân tích">
+                <button type="button" class="timeline-tick" role="listitem"
+                        th:each="point, stat : ${analysis.timeline}"
+                        th:classappend="${point.detected()} ? ' positive' : ''"
+                        th:attr="data-index=${stat.index}, data-time=${point.timeSec()},
+                                 aria-label=${#numbers.formatDecimal(point.timeSec(), 1, 1) + ' giây: '
+                                    + (point.detected() ? 'có polyp, độ tin cậy ' + #numbers.formatDecimal(point.confidence() * 100, 1, 0) + '%' : 'không phát hiện')},
+                                 title=${#numbers.formatDecimal(point.timeSec(), 1, 1) + ' s'
+                                    + (point.detected() ? ' · ' + #numbers.formatDecimal(point.confidence() * 100, 1, 0) + '%' : '')}">
+                </button>
+            </div>
+            <div class="timeline-legend">
+                <span><span class="legend-swatch positive"></span> Có vùng nghi ngờ</span>
+                <span><span class="legend-swatch"></span> Không phát hiện</span>
+            </div>
+
+            <div class="table-responsive mt-3" th:unless="${analysis.segments.isEmpty()}">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th scope="col">Đoạn</th>
+                        <th scope="col">Từ</th>
+                        <th scope="col">Đến</th>
+                        <th scope="col">Số khung</th>
+                        <th scope="col">Độ tin cậy cao nhất</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="segment, stat : ${analysis.segments}">
+                        <td th:text="${stat.count}">1</td>
+                        <td><button type="button" class="btn btn-link p-0 segment-seek"
+                                    th:attr="data-time=${segment.startSec()}"
+                                    th:text="${#numbers.formatDecimal(segment.startSec(), 1, 1) + ' giây'}">0,0 giây</button></td>
+                        <td th:text="${#numbers.formatDecimal(segment.endSec(), 1, 1) + ' giây'}">1,2 giây</td>
+                        <td th:text="${segment.frames()}">6</td>
+                        <td th:text="${#numbers.formatDecimal(segment.maxConfidence() * 100, 1, 1) + '%'}">91,0%</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <div class="row g-4 result-details-row">
+            <div class="col-lg-8">
+                <article class="workspace-card">
+                    <div class="card-heading">
+                        <div>
+                            <span class="card-step">Thông tin</span>
+                            <h2>Chi tiết lượt phân tích</h2>
+                        </div>
+                    </div>
+                    <div class="result-info-grid">
+                        <div class="info-item">
+                            <span><i class="bi bi-clock"></i> Thời lượng video</span>
+                            <strong th:text="${#numbers.formatDecimal(analysis.durationSec, 1, 1) + ' giây · '
+                                + #numbers.formatDecimal(analysis.sourceFps, 1, 1) + ' khung/giây'}">10 giây</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-aspect-ratio"></i> Kích thước</span>
+                            <strong th:text="${analysis.width + ' × ' + analysis.height + ' px'}">1280 × 720 px</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-collection"></i> Khung đã phân tích</span>
+                            <strong th:text="${analysis.framesProcessed + ' khung (' + #numbers.formatDecimal(analysis.sampleFps, 1, 1) + ' khung/giây)'}">50</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-bullseye"></i> Khung có polyp</span>
+                            <strong th:text="${analysis.framesWithPolyp + ' (' + #numbers.formatDecimal(analysis.positiveFramePercent, 1, 1) + '%)'}">12</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-graph-up"></i> Độ tin cậy cao nhất</span>
+                            <strong th:text="${#numbers.formatDecimal(analysis.maxConfidence * 100, 1, 1) + '%'}">91,0%</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-stopwatch"></i> Suy luận trung bình mỗi khung</span>
+                            <strong th:text="${#numbers.formatDecimal(analysis.averageInferenceMs, 1, 1) + ' ms'}">30 ms</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-speedometer2"></i> Tốc độ xử lý</span>
+                            <strong th:text="${#numbers.formatDecimal(analysis.throughputFps, 1, 1) + ' khung/giây'}">20 khung/giây</strong>
+                        </div>
+                        <div class="info-item" th:if="${analysis.aiRoundTripMs != null}"
+                             title="Đo tại Spring Boot: gửi video, giải mã, suy luận mọi khung lấy mẫu, mã hóa video kết quả và nhận phản hồi">
+                            <span><i class="bi bi-arrow-left-right"></i> Thời gian end-to-end (Web ↔ AI)</span>
+                            <strong th:text="${#numbers.formatDecimal(analysis.aiRoundTripMs / 1000, 1, 1) + ' giây'}">12 giây</strong>
+                        </div>
+                        <div class="info-item">
+                            <span><i class="bi bi-calendar3"></i> Thời gian thực hiện</span>
+                            <strong th:text="${#temporals.format(analysis.createdAt, 'HH:mm · dd/MM/yyyy')}">09:30</strong>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            <div class="col-lg-4">
+                <article class="workspace-card">
+                    <div class="card-heading">
+                        <div>
+                            <span class="card-step">Lưu ý</span>
+                            <h2>Cách đọc kết quả</h2>
+                        </div>
+                    </div>
+                    <p>Mô hình phân tích từng khung độc lập, không dùng thông tin giữa các khung. Một đoạn liên tục
+                        nhiều khung dương tính đáng tin hơn một khung lẻ.</p>
+                    <p class="mb-0">Kết quả chỉ phục vụ nghiên cứu và hỗ trợ tham khảo, không thay thế chẩn đoán
+                        của bác sĩ.</p>
+                    <form class="mt-3" th:action="@{/videos/{id}/delete(id=${analysis.id})}" method="post"
+                          onsubmit="return confirm('Xóa kết quả video này và các tệp liên quan?');">
+                        <button type="submit" class="btn btn-light-danger w-100">
+                            <i class="bi bi-trash3"></i> Xóa kết quả video
+                        </button>
+                    </form>
+                </article>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<th:block th:replace="~{fragments/footer :: scripts}"></th:block>
+<script th:src="@{/js/video.js}"></script>
+</body>
+</html>
