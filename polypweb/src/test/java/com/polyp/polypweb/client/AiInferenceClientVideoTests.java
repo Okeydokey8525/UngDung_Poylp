@@ -57,6 +57,17 @@ class AiInferenceClientVideoTests {
                 output.write(response);
             }
         });
+        server.createContext("/video/result/", exchange -> {
+            byte[] video = {0x1a, 0x45, (byte) 0xdf, (byte) 0xa3, 1, 2, 3, 4};
+            boolean known = exchange.getRequestURI().getPath().endsWith("/0123456789abcdef0123456789abcdef");
+            exchange.getResponseHeaders().add("Content-Type", "video/webm");
+            exchange.sendResponseHeaders(known ? 200 : 404, known ? video.length : -1);
+            try (OutputStream output = exchange.getResponseBody()) {
+                if (known) {
+                    output.write(video);
+                }
+            }
+        });
         server.start();
     }
 
@@ -73,6 +84,23 @@ class AiInferenceClientVideoTests {
                 JsonMapper.builder().build(),
                 properties
         );
+    }
+
+    @Test
+    void resultVideoSentAsFileIsParsedAndDownloaded() throws Exception {
+        reply = OK_JSON.replace("\"resultVideoBase64\":\"GkXfow==\"",
+                "\"resultVideoBase64\":\"\",\"resultVideoId\":\"0123456789abcdef0123456789abcdef\"");
+        MockMultipartFile file = new MockMultipartFile("video", "clip.mp4", "video/mp4", new byte[]{0, 0, 0, 8, 'f', 't', 'y', 'p'});
+
+        AiVideoPredictionResponse response = client().predictVideo(file, "YOLO26s-seg", 0);
+
+        assertTrue(response.resultVideoAsFile());
+        try (java.io.InputStream video = client().downloadResultVideo(response.resultVideoId())) {
+            assertEquals(8, video.readAllBytes().length);
+        }
+        AiServiceException missing = assertThrows(AiServiceException.class,
+                () -> client().downloadResultVideo("ffffffffffffffffffffffffffffffff"));
+        assertEquals("RESULT_VIDEO_NOT_FOUND", missing.getCode());
     }
 
     @Test
@@ -93,6 +121,7 @@ class AiInferenceClientVideoTests {
         String text = new String(body.get(), StandardCharsets.ISO_8859_1);
         assertTrue(text.contains("name=\"video\"; filename=\"clip.mp4\""));
         assertTrue(text.contains("name=\"modelType\"\r\n\r\nYOLO26s-seg\r\n"));
+        assertTrue(text.contains("name=\"resultVideoTransfer\"\r\n\r\nfile\r\n"));
         assertTrue(text.contains("name=\"sampleFps\"\r\n\r\n5\r\n"));
         assertTrue(body.get().length > video.length);
         assertEquals(50, response.framesProcessed());

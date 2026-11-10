@@ -61,7 +61,19 @@ class VideoAnalysisServiceTests {
                 true, modelType, "clip.mp4", 25, 250, 10, 640, 480, 5, 5, false, 25.0, 250, 200, 50, 12, 0.91, 4000, 60, 12.5,
                 List.of(new VideoAnalysis.TimelinePoint(0, 0, true, 0.91, 1)),
                 List.of(new VideoAnalysis.Segment(0, 0.2, 1, 0.91)),
-                "GkXfow==", "video/webm", "ok", 4200.0
+                "GkXfow==", "video/webm", "ok", 4200.0, null
+        );
+    }
+
+    private static AiVideoPredictionResponse predictionAsFile(String modelType) {
+        AiVideoPredictionResponse p = prediction(modelType);
+        return new AiVideoPredictionResponse(
+                p.success(), p.modelType(), p.originalFileName(), p.sourceFps(), p.sourceFrameCount(),
+                p.durationSec(), p.width(), p.height(), p.sampleFps(), p.requestedSampleFps(),
+                p.sampleRateReduced(), p.outputFps(), p.framesWritten(), p.framesHeld(), p.framesProcessed(),
+                p.framesWithPolyp(), p.maxConfidence(), p.processingTimeMs(), p.averageInferenceMs(),
+                p.throughputFps(), p.timeline(), p.segments(), "", "video/mp4", "ok", 4200.0,
+                "0123456789abcdef0123456789abcdef"
         );
     }
 
@@ -197,6 +209,27 @@ class VideoAnalysisServiceTests {
         assertThrows(DiagnosisOperationException.class,
                 () -> service.startLive(video, "YOLO26s-seg", 5, "user-id"));
         verify(storageService).deleteQuietly("a.mp4", null);
+    }
+
+    @Test
+    void liveResultSentAsFileIsDownloadedAndStreamedToStorage() {
+        VideoAnalysisService.LiveSession session = startedLive(mp4("clip.mp4"));
+        java.io.InputStream download = new java.io.ByteArrayInputStream(new byte[]{0, 0, 0, 24, 'f', 't', 'y', 'p'});
+        when(aiInferenceClient.liveVideoStatus(JOB)).thenReturn(java.util.Map.of("state", "done"));
+        when(aiInferenceClient.liveVideoResult(JOB, "YOLO26s-seg")).thenReturn(predictionAsFile("YOLO26s-seg"));
+        when(aiInferenceClient.downloadResultVideo("0123456789abcdef0123456789abcdef")).thenReturn(download);
+        when(storageService.storeResult(eq(download), any())).thenReturn("a_result.mp4");
+        when(repository.save(any())).thenAnswer(invocation -> {
+            VideoAnalysis analysis = invocation.getArgument(0);
+            analysis.setId("video-2");
+            return analysis;
+        });
+
+        assertEquals("saved", service.liveStatus(session).get("state"));
+        verify(storageService, never()).storeResult(anyString(), any());
+        ArgumentCaptor<VideoAnalysis> captor = ArgumentCaptor.forClass(VideoAnalysis.class);
+        verify(repository).save(captor.capture());
+        assertEquals("a_result.mp4", captor.getValue().getResultVideoFile());
     }
 
     @Test

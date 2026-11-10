@@ -34,7 +34,7 @@ from pydantic import BaseModel
 from mobile_contract import MobileErrorResponse
 from mobile_routes import MobileApiError, create_mobile_router
 from video_processing import ALL_FRAMES, FramePrediction, VideoProcessingError, process_video
-from live_video import LiveJob, LiveJobRegistry
+from live_video import LiveJob, LiveJobRegistry, ResultVideoStore
 from ground_truth import binarize_ground_truth, draw_ground_truth, pixel_metrics, predicted_mask
 
 PIL_IMAGE_OPEN = Image.open
@@ -772,8 +772,13 @@ class VideoPredictionResponse(BaseModel):
     throughputFps: float
     timeline: list[VideoTimelinePoint]
     segments: list[VideoSegment]
+    # Inline transfer (default): the overlay video as Base64. File transfer: empty, and the video is
+    # downloaded once from GET /video/result/{resultVideoId} (needed for long all-frame videos, whose
+    # Base64 can exceed what a JSON client accepts).
     resultVideoBase64: str
     resultVideoMimeType: str
+    resultVideoId: str | None = None
+    resultVideoBytes: int = 0
     message: str
 
 
@@ -877,8 +882,25 @@ async def save_video_upload(video: UploadFile, extension: str) -> str:
         raise
 
 
-def video_response(analysis: Any, canonical_name: str, file_name: str) -> VideoPredictionResponse:
+VIDEO_TRANSFERS = {"inline", "file"}
+RESULT_VIDEOS = ResultVideoStore()
+
+
+def check_video_transfer(transfer: str) -> str:
+    value = (transfer or "inline").strip().lower()
+    if value not in VIDEO_TRANSFERS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"resultVideoTransfer must be one of {sorted(VIDEO_TRANSFERS)}",
+        )
+    return value
+
+
+def video_response(
+    analysis: Any, canonical_name: str, file_name: str, transfer: str = "inline"
+) -> VideoPredictionResponse:
     seconds = analysis.processing_time_ms / 1000
+    video_id = RESULT_VIDEOS.put(analysis.video_bytes, analysis.video_mime_type) if transfer == "file" else None
     return VideoPredictionResponse(
         success=True,
         modelType=canonical_name,
@@ -902,8 +924,10 @@ def video_response(analysis: Any, canonical_name: str, file_name: str) -> VideoP
         throughputFps=round(analysis.frames_processed / seconds, 3) if seconds > 0 else 0.0,
         timeline=analysis.timeline,
         segments=analysis.segments,
-        resultVideoBase64=base64.b64encode(analysis.video_bytes).decode("ascii"),
+        resultVideoBase64="" if video_id else base64.b64encode(analysis.video_bytes).decode("ascii"),
         resultVideoMimeType=analysis.video_mime_type,
+        resultVideoId=video_id,
+        resultVideoBytes=len(analysis.video_bytes),
         message=(
             "Video inference completed"
             if analysis.frames_with_polyp
@@ -918,8 +942,10 @@ async def predict_video(
     video: UploadFile = File(...),
     modelType: str = Form(...),
     sampleFps: int = Form(5),
+    resultVideoTransfer: str = Form("inline"),
 ) -> VideoPredictionResponse:
     """Offline video analysis for the web client: sampled frames, overlay video and a detection timeline."""
+    transfer = check_video_transfer(resultVideoTransfer)
     canonical_name, runtime, file_name, extension = check_video_request(request, modelType, sampleFps, video)
     source_path = await save_video_upload(video, extension)
     try:
@@ -946,7 +972,17 @@ async def predict_video(
     finally:
         if os.path.exists(source_path):
             os.remove(source_path)
-    return video_response(analysis, canonical_name, file_name)
+    return video_response(analysis, canonical_name, file_name, transfer)
+
+
+@app.get("/video/result/{video_id}")
+async def download_result_video(video_id: str) -> Response:
+    """One-time download of an overlay video kept by resultVideoTransfer=file (removed once served)."""
+    entry = RESULT_VIDEOS.pop(video_id) if re.fullmatch(r"[0-9a-f]{32}", video_id or "") else None
+    if entry is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Result video not found or expired")
+    content, mime = entry
+    return Response(content=content, media_type=mime, headers={"Cache-Control": "no-store"})
 
 
 # ----------------------------------------------------------------- real-time playback simulation
@@ -972,7 +1008,7 @@ async def run_live_job(job: LiveJob, runtime: Any, device: str, source_path: str
                 process_video, source_path, sample_fps, MAX_VIDEO_SECONDS, predict_frame, MAX_VIDEO_FRAMES,
                 job.push, True,
             )
-        job.finish(video_response(analysis, job.model_type, job.file_name))
+        job.finish(analysis)
     except VideoProcessingError as exception:
         job.fail(str(exception), status.HTTP_422_UNPROCESSABLE_ENTITY)
     except Exception:
@@ -1050,13 +1086,14 @@ async def live_video_stream(job_id: str) -> StreamingResponse:
 
 
 @app.get("/video/live/{job_id}/result", response_model=VideoPredictionResponse)
-async def live_video_result(job_id: str) -> VideoPredictionResponse:
+async def live_video_result(job_id: str, transfer: str = "inline") -> VideoPredictionResponse:
+    transfer = check_video_transfer(transfer)
     job = require_live_job(job_id)
     if job.state == "running":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="The live video job is still running")
     if job.state == "error":
         raise HTTPException(status_code=job.error_status or 500, detail=job.error)
-    return job.result
+    return video_response(job.result, job.model_type, job.file_name, transfer)
 
 
 app.include_router(

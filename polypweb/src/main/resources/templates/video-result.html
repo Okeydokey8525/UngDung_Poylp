@@ -43,12 +43,17 @@
                     <div><span class="view-dot original"></span><h2>Video gốc</h2></div>
                     <span>Input</span>
                 </div>
-                <video class="result-video" controls preload="metadata" playsinline
+                <video id="originalVideo" class="result-video" controls preload="metadata" playsinline
                        th:src="@{/videos/{id}/original-video(id=${analysis.id})}">
                     Trình duyệt không phát được định dạng video gốc này.
                 </video>
-                <p class="video-note">Một số định dạng (AVI, MKV) có thể không phát được trên trình duyệt; video
-                    kết quả bên cạnh luôn ở định dạng trình duyệt phát được (MP4 H.264 hoặc WebM).</p>
+                <p id="originalVideoNote" class="video-preview-note" role="status" hidden>
+                    <i class="bi bi-info-circle"></i>
+                    Trình duyệt không phát được video gốc này (mã hóa như MPEG-4 Part 2 hoặc định dạng AVI, MKV).
+                    Video sau phân đoạn bên cạnh vẫn phát bình thường.
+                </p>
+                <p class="video-note">Một số định dạng (AVI, MKV, MP4 mã hóa MPEG-4 Part 2) có thể không phát được
+                    trên trình duyệt; video kết quả bên cạnh luôn ở định dạng trình duyệt phát được (MP4 H.264 hoặc WebM).</p>
             </article>
             <article class="result-image-card">
                 <div class="result-card-header">

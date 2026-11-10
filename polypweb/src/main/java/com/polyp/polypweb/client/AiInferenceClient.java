@@ -37,6 +37,7 @@ public class AiInferenceClient {
     private final String healthUrl;
     private final String videoPredictUrl;
     private final String liveUrl;
+    private final String videoResultUrl;
     private final Duration readTimeout;
     private final Duration videoReadTimeout;
     private final Duration healthTimeout;
@@ -52,6 +53,7 @@ public class AiInferenceClient {
         this.healthUrl = normalizedBaseUrl + "/health";
         this.videoPredictUrl = normalizedBaseUrl + "/video/predict";
         this.liveUrl = normalizedBaseUrl + "/video/live";
+        this.videoResultUrl = normalizedBaseUrl + "/video/result";
         this.readTimeout = properties.getReadTimeout();
         this.videoReadTimeout = properties.getVideoReadTimeout() == null
                 ? Duration.ofMinutes(10)
@@ -202,7 +204,7 @@ public class AiInferenceClient {
      * is segmented; the call blocks until the overlay video is ready.
      */
     public AiVideoPredictionResponse predictVideo(MultipartFile video, String modelType, int sampleFps) {
-        VideoUpload upload = videoUpload(video, modelType, sampleFps);
+        VideoUpload upload = videoUpload(video, modelType, sampleFps, true);
         HttpRequest request = HttpRequest.newBuilder(URI.create(videoPredictUrl))
                 .timeout(videoReadTimeout)
                 .header("Content-Type", "multipart/form-data; boundary=" + upload.boundary())
@@ -221,7 +223,7 @@ public class AiInferenceClient {
      * {@link #openLiveVideoStream}.
      */
     public AiLiveVideoStart startLiveVideo(MultipartFile video, String modelType, int sampleFps) {
-        VideoUpload upload = videoUpload(video, modelType, sampleFps);
+        VideoUpload upload = videoUpload(video, modelType, sampleFps, false);
         HttpRequest request = HttpRequest.newBuilder(URI.create(liveUrl))
                 .timeout(videoReadTimeout)
                 .header("Content-Type", "multipart/form-data; boundary=" + upload.boundary())
@@ -290,7 +292,7 @@ public class AiInferenceClient {
     /** Final payload of a finished live job; same shape and checks as {@link #predictVideo}. */
     public AiVideoPredictionResponse liveVideoResult(String jobId, String modelType) {
         long sentAt = System.nanoTime();
-        HttpResponse<String> response = sendVideo(liveRequest(jobId, "/result", videoReadTimeout));
+        HttpResponse<String> response = sendVideo(liveRequest(jobId, "/result?transfer=file", videoReadTimeout));
         double roundTripMs = (System.nanoTime() - sentAt) / 1_000_000.0;
         if (response.statusCode() == 409) {
             throw new AiServiceException("LIVE_RUNNING", "Phiên mô phỏng vẫn đang chạy.");
@@ -300,6 +302,39 @@ public class AiInferenceClient {
         }
         requireVideoAccepted(response);
         return parseVideoPrediction(response.body(), modelType, roundTripMs);
+    }
+
+    /**
+     * Opens the one-time download of an overlay video kept by FastAPI (file transfer). The caller must
+     * close the stream.
+     */
+    public InputStream downloadResultVideo(String videoId) {
+        if (!validJobId(videoId)) {
+            throw new AiServiceException("RESULT_VIDEO_NOT_FOUND", "Mã video kết quả không hợp lệ.");
+        }
+        HttpRequest request = HttpRequest.newBuilder(URI.create(videoResultUrl + "/" + videoId))
+                .timeout(videoReadTimeout)
+                .GET()
+                .build();
+        HttpResponse<InputStream> response;
+        try {
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        } catch (IOException exception) {
+            throw new AiServiceException("AI_SERVICE_UNAVAILABLE", "Không tải được video kết quả từ FastAPI.", exception);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AiServiceException("Yêu cầu FastAPI đã bị gián đoạn.", exception);
+        }
+        if (response.statusCode() != 200) {
+            try {
+                response.body().close();
+            } catch (IOException ignored) {
+                // nothing to release
+            }
+            throw new AiServiceException(response.statusCode() == 404 ? "RESULT_VIDEO_NOT_FOUND" : "AI_SERVICE_ERROR",
+                    "FastAPI không còn giữ video kết quả (HTTP " + response.statusCode() + ").");
+        }
+        return response.body();
     }
 
     static boolean validJobId(String jobId) {
@@ -319,7 +354,7 @@ public class AiInferenceClient {
     private record VideoUpload(String boundary, HttpRequest.BodyPublisher body) {
     }
 
-    private VideoUpload videoUpload(MultipartFile video, String modelType, int sampleFps) {
+    private VideoUpload videoUpload(MultipartFile video, String modelType, int sampleFps, boolean resultAsFile) {
         String boundary = "----PolypVision-" + UUID.randomUUID();
         try {
             ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -337,6 +372,11 @@ public class AiInferenceClient {
             writeText(output, "Content-Disposition: form-data; name=\"modelType\"\r\n\r\n" + modelType + "\r\n");
             writeText(output, "--" + boundary + "\r\n");
             writeText(output, "Content-Disposition: form-data; name=\"sampleFps\"\r\n\r\n" + sampleFps + "\r\n");
+            if (resultAsFile) {
+                // Long all-frame videos give an overlay video whose Base64 is too large for one JSON string.
+                writeText(output, "--" + boundary + "\r\n");
+                writeText(output, "Content-Disposition: form-data; name=\"resultVideoTransfer\"\r\n\r\nfile\r\n");
+            }
             writeText(output, "--" + boundary + "--\r\n");
             // Stream the (up to 200 MB) video from Spring's temp file instead of copying it into memory.
             video.getInputStream().close();
@@ -419,7 +459,11 @@ public class AiInferenceClient {
                         "FastAPI trả về kết quả từ mô hình khác với mô hình đã chọn."
                 );
             }
-            if (prediction.resultVideoBase64() == null || prediction.resultVideoBase64().isBlank()) {
+            if (prediction.resultVideoAsFile() && !validJobId(prediction.resultVideoId())) {
+                throw new AiServiceException("FastAPI trả về mã video kết quả không hợp lệ.");
+            }
+            if (!prediction.resultVideoAsFile()
+                    && (prediction.resultVideoBase64() == null || prediction.resultVideoBase64().isBlank())) {
                 throw new AiServiceException("FastAPI không trả về video kết quả.");
             }
             return prediction.withAiRoundTripMs(roundTripMs);

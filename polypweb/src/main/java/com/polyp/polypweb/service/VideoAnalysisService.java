@@ -128,7 +128,7 @@ public class VideoAnalysisService {
             originalFile = storageService.storeOriginal(video, storageId, extension);
             AiVideoPredictionResponse prediction = aiInferenceClient.predictVideo(
                     video, model.getModelType(), sampleFps);
-            resultFile = storageService.storeResult(prediction.resultVideoBase64(), storageId);
+            resultFile = storeResultVideo(prediction, storageId);
 
             return repository.save(toAnalysis(prediction, model, userId, fileName, originalFile, resultFile,
                     video.getSize()));
@@ -270,16 +270,25 @@ public class VideoAnalysisService {
         try {
             AiVideoPredictionResponse prediction =
                     aiInferenceClient.liveVideoResult(session.jobId, session.model.getModelType());
-            resultFile = storageService.storeResult(prediction.resultVideoBase64(), session.storageId);
+            resultFile = storeResultVideo(prediction, session.storageId);
             VideoAnalysis saved = repository.save(toAnalysis(prediction, session.model, session.userId,
                     session.fileName, session.originalFile, resultFile, session.originalSizeBytes));
             session.savedVideoId = saved.getId();
         } catch (RuntimeException exception) {
             storageService.deleteQuietly(null, resultFile);
-            LOGGER.error("Live video save failure modelType={} type={}",
-                    session.model.getModelType(), exception.getClass().getSimpleName());
+            LOGGER.error("Live video save failure modelType={} type={} message={}",
+                    session.model.getModelType(), exception.getClass().getSimpleName(), exception.getMessage());
             fail(session, "Không thể lưu kết quả mô phỏng. Dữ liệu tạm đã được dọn dẹp.");
         }
+    }
+
+    /** Stores the overlay video, downloading it as a file when FastAPI did not inline it as Base64. */
+    private String storeResultVideo(AiVideoPredictionResponse prediction, UUID storageId) {
+        if (prediction.resultVideoAsFile()) {
+            return storageService.storeResult(aiInferenceClient.downloadResultVideo(prediction.resultVideoId()),
+                    storageId);
+        }
+        return storageService.storeResult(prediction.resultVideoBase64(), storageId);
     }
 
     private void fail(LiveSession session, String message) {

@@ -178,7 +178,9 @@ Tài liệu đầy đủ: [FastAPI AI Service README](polypweb/ai-service/README
 |---|---|---|
 | `GET` | `/health` | Health service, device và registry model |
 | `POST` | `/predict` | Multipart `image` + `modelType`; trả metadata và JPEG overlay Base64; header `Server-Timing` ghi thời gian giải mã, suy luận, vẽ lớp phủ, tổng |
-| `POST` | `/video/predict` | Multipart `video` + `modelType` + `sampleFps` (2/5/10, hoặc 0 = tất cả khung, cần GPU); trả dòng thời gian, các đoạn có polyp và video WebM có lớp phủ (Base64) |
+| `POST` | `/video/predict` | Multipart `video` + `modelType` + `sampleFps` (2/5/10, hoặc 0 = tất cả khung, cần GPU); trả dòng thời gian, các đoạn có polyp và video có lớp phủ. `resultVideoTransfer=inline` (mặc định) gửi video dạng Base64; `file` chỉ trả `resultVideoId` (Spring Boot dùng cách này, vì video tất cả khung có thể nặng hàng trăm MB) |
+| `GET` | `/video/live/{jobId}/result` | Kết quả phiên mô phỏng, cùng dạng `/video/predict`; `?transfer=file` như trên |
+| `GET` | `/video/result/{resultVideoId}` | Tải video kết quả một lần (giữ tối đa 30 phút, 4 video) |
 
 ### Contract Mobile Direct AI
 

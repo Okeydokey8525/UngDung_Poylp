@@ -40,6 +40,24 @@ class VideoStorageServiceTests {
     }
 
     @Test
+    void streamedResultIsWrittenWithoutBase64() throws Exception {
+        VideoStorageService storage = new VideoStorageService(root);
+        byte[] webm = new byte[200_000];
+        webm[0] = 0x1a;
+        webm[1] = 0x45;
+        webm[2] = (byte) 0xdf;
+        webm[3] = (byte) 0xa3;
+        webm[webm.length - 1] = 7;
+
+        String name = storage.storeResult(new java.io.ByteArrayInputStream(webm), UUID.randomUUID());
+
+        assertTrue(name.endsWith("_result.webm"));
+        assertEquals(webm.length, storage.loadResult(name).orElseThrow().contentLength());
+        assertThrows(StorageException.class, () -> storage.storeResult(
+                new java.io.ByteArrayInputStream("not a video at all".getBytes()), UUID.randomUUID()));
+    }
+
+    @Test
     void otherContentIsRejected() {
         VideoStorageService storage = new VideoStorageService(root);
         assertThrows(StorageException.class,

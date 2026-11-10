@@ -153,3 +153,41 @@ class LiveJobRegistry:
     def clear(self) -> None:
         with self._lock:
             self._jobs.clear()
+
+
+class ResultVideoStore:
+    """Overlay videos waiting to be downloaded once (resultVideoTransfer=file).
+
+    Keeps at most ``max_items`` videos for ``ttl_sec`` seconds; the oldest is dropped first so a client
+    that never downloads cannot fill the memory."""
+
+    def __init__(self, max_items: int = 4, ttl_sec: float = 1800.0) -> None:
+        self._items: dict[str, tuple[float, bytes, str]] = {}
+        self._lock = threading.Lock()
+        self.max_items = max_items
+        self.ttl_sec = ttl_sec
+
+    def put(self, content: bytes, mime: str) -> str:
+        video_id = uuid.uuid4().hex
+        with self._lock:
+            self._evict()
+            while len(self._items) >= self.max_items:
+                oldest = min(self._items, key=lambda key: self._items[key][0])
+                del self._items[oldest]
+            self._items[video_id] = (time.monotonic(), content, mime)
+        return video_id
+
+    def pop(self, video_id: str) -> tuple[bytes, str] | None:
+        with self._lock:
+            self._evict()
+            item = self._items.pop(video_id, None)
+        return None if item is None else (item[1], item[2])
+
+    def _evict(self) -> None:
+        cutoff = time.monotonic() - self.ttl_sec
+        for key in [key for key, item in self._items.items() if item[0] < cutoff]:
+            del self._items[key]
+
+    def clear(self) -> None:
+        with self._lock:
+            self._items.clear()

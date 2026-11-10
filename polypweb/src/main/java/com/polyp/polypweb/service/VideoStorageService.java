@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -87,6 +88,59 @@ public class VideoStorageService {
         String fileName = storageId + (isMp4(content) ? "_result.mp4" : "_result.webm");
         write(resultsDirectory, fileName, content);
         return fileName;
+    }
+
+    /**
+     * Streams an overlay video downloaded from FastAPI to {@code <uuid>_result.mp4|webm} without holding
+     * it in memory. The container is taken from the first bytes; the size is capped at
+     * {@link #MAX_RESULT_BYTES}.
+     */
+    public String storeResult(InputStream input, UUID storageId) {
+        Path temporary = null;
+        try (InputStream source = input) {
+            byte[] head = source.readNBytes(8);
+            if (head.length < 8 || !(isWebm(head) || isMp4(head))) {
+                throw new StorageException("Video kết quả không phải MP4 hoặc WebM hợp lệ.");
+            }
+            String fileName = storageId + (isMp4(head) ? "_result.mp4" : "_result.webm");
+            Path target = resultsDirectory.resolve(fileName).normalize();
+            if (!target.startsWith(resultsDirectory)) {
+                throw new StorageException("Đường dẫn lưu video không hợp lệ.");
+            }
+            Files.createDirectories(resultsDirectory);
+            temporary = Files.createTempFile(resultsDirectory, fileName, ".tmp");
+            long written = head.length;
+            try (OutputStream output = Files.newOutputStream(temporary)) {
+                output.write(head);
+                byte[] buffer = new byte[1 << 16];
+                int read;
+                while ((read = source.read(buffer)) != -1) {
+                    written += read;
+                    if (written > MAX_RESULT_BYTES) {
+                        throw new StorageException("Video kết quả vượt quá "
+                                + (MAX_RESULT_BYTES / (1024 * 1024)) + " MB.");
+                    }
+                    output.write(buffer, 0, read);
+                }
+            }
+            try {
+                Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException exception) {
+                Files.move(temporary, target);
+            }
+            temporary = null;
+            return fileName;
+        } catch (IOException exception) {
+            throw new StorageException("Không thể lưu video kết quả vào storage.", exception);
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException ignored) {
+                    // best effort
+                }
+            }
+        }
     }
 
     public Optional<Resource> loadOriginal(String fileName) {

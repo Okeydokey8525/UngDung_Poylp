@@ -88,6 +88,12 @@ def test_03_live_job_runs_in_background_and_returns_the_offline_payload(app_clie
     assert body["framesProcessed"] == 5
     assert body["framesWritten"] == 10
     assert body["modelType"] == "YOLO26s-TSVM-FP32-seg"
+    assert body["resultVideoBase64"] and body["resultVideoId"] is None
+
+    as_file = client.get(f"/video/live/{job_id}/result", params={"transfer": "file"}).json()
+    assert as_file["resultVideoBase64"] == "" and as_file["framesProcessed"] == 5
+    video = client.get(f"/video/result/{as_file['resultVideoId']}")
+    assert video.status_code == 200 and len(video.content) == as_file["resultVideoBytes"]
 
     stream = client.get(f"/video/live/{job_id}/stream")
     assert stream.headers["content-type"].startswith("multipart/x-mixed-replace")

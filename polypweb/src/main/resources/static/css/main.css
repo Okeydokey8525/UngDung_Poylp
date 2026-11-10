@@ -5028,6 +5028,25 @@ html[data-bs-theme="light"] input[type="date"] {
     display: block;
 }
 
+.video-preview-wrap video[hidden],
+.result-video[hidden],
+.video-preview-note[hidden] {
+    display: none;
+}
+
+.video-preview-note {
+    display: flex;
+    gap: .5rem;
+    align-items: flex-start;
+    margin: 0;
+    padding: .9rem 1rem;
+    border: 1px dashed var(--pv-border);
+    border-radius: 12px;
+    font-size: .9rem;
+    line-height: 1.5;
+    color: var(--pv-muted);
+}
+
 .video-preview-info,
 .video-note {
     display: block;

@@ -16,6 +16,17 @@
         var submit = document.getElementById("videoSubmit");
         var status = document.getElementById("videoSubmitStatus");
         var objectUrl = null;
+        var previewNote = document.getElementById("videoPreviewNote");
+        var previewTimer = null;
+
+        // Browsers decode only H.264/VP8/VP9/AV1. Endoscope recordings are often MPEG-4 Part 2 (mp4v) or
+        // MJPEG: the <video> stays black at 0:00. Say so instead of showing an empty player; the AI service
+        // reads these files with OpenCV and the overlay video it returns always plays.
+        var showUndecodable = function () {
+            window.clearTimeout(previewTimer);
+            preview.hidden = true;
+            previewNote.hidden = false;
+        };
 
         var showError = function (message) {
             error.querySelector("span").textContent = message;
@@ -47,6 +58,9 @@
                 objectUrl = null;
             }
             previewWrap.hidden = true;
+            window.clearTimeout(previewTimer);
+            preview.hidden = false;
+            previewNote.hidden = true;
             if (!validate()) {
                 return;
             }
@@ -55,9 +69,25 @@
             preview.src = objectUrl;
             info.textContent = file.name + " · " + (file.size / 1024 / 1024).toFixed(1).replace(".", ",") + " MB";
             previewWrap.hidden = false;
+            // A local file normally reports its metadata within a second; no metadata means no decoder.
+            previewTimer = window.setTimeout(function () {
+                if (preview.readyState < 1) {
+                    showUndecodable();
+                }
+            }, 4000);
+        });
+
+        preview.addEventListener("error", showUndecodable);
+
+        preview.addEventListener("loadeddata", function () {
+            window.clearTimeout(previewTimer);
         });
 
         preview.addEventListener("loadedmetadata", function () {
+            if (preview.videoWidth === 0) {
+                showUndecodable();
+                return;
+            }
             if (isFinite(preview.duration) && preview.duration > MAX_SECONDS + 0.5) {
                 showError("Video dài " + Math.round(preview.duration) + " giây, vượt giới hạn 5 phút; hãy cắt thành nhiều đoạn.");
             }
@@ -81,6 +111,25 @@
                 status.textContent = "Đang phân tích video.";
             }
         });
+    }
+
+    // Result page: the stored original may use a codec the browser cannot play (see showUndecodable).
+    var originalVideo = document.getElementById("originalVideo");
+    if (originalVideo) {
+        var originalNote = document.getElementById("originalVideoNote");
+        var hideOriginal = function () {
+            originalVideo.hidden = true;
+            originalNote.hidden = false;
+        };
+        originalVideo.addEventListener("error", hideOriginal);
+        originalVideo.addEventListener("loadedmetadata", function () {
+            if (originalVideo.videoWidth === 0) {
+                hideOriginal();
+            }
+        });
+        if (originalVideo.error) {
+            hideOriginal();
+        }
     }
 
     // Result page: clicking a timeline tick or a segment seeks the overlay video.

@@ -129,6 +129,26 @@ def test_06_endpoint_returns_timeline_and_webm(app_client, monkeypatch, video_pa
     assert body["averageInferenceMs"] == pytest.approx(3.0)
 
 
+def test_06b_file_transfer_returns_id_and_serves_the_video_once(app_client, monkeypatch, video_path):
+    client, _ = app_client
+    fake_predict.calls = 0
+    monkeypatch.setattr(main, "predict_video_frame", lambda model, device, frame: fake_predict(frame))
+    response = post_video(client, video_path, resultVideoTransfer="file")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["resultVideoBase64"] == ""
+    assert body["resultVideoBytes"] > 0
+    video_id = body["resultVideoId"]
+    assert len(video_id) == 32
+    download = client.get(f"/video/result/{video_id}")
+    assert download.status_code == 200
+    assert download.headers["content-type"] == body["resultVideoMimeType"]
+    assert len(download.content) == body["resultVideoBytes"]
+    assert is_video(download.content)
+    assert client.get(f"/video/result/{video_id}").status_code == 404  # served once
+    assert client.get("/video/result/not-an-id").status_code == 404
+    assert post_video(client, video_path, resultVideoTransfer="ftp").status_code == 422
+
 def test_07_endpoint_rejects_bad_sample_rate_and_extension(app_client, video_path):
     client, _ = app_client
     assert post_video(client, video_path, sampleFps="7").status_code == 422
