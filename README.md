@@ -2,6 +2,8 @@
 
 > **Đề tài:** “Nghiên cứu phương pháp tích hợp VMamba vào mô hình YOLO26-seg trong phân đoạn polyp từ ảnh nội soi đại trực tràng.”
 
+> **Mã nguồn nghiên cứu** (dữ liệu, huấn luyện, số liệu, báo cáo): <https://github.com/Okeydokey8525/DL_Poylp_v26_VMamba_TestDemo> (nhánh `Okeydokey`).
+
 PolypVision là hệ thống phục vụ nghiên cứu phân đoạn polyp trên ảnh nội soi đại trực tràng. Dự án cho phép chạy và so sánh mô hình baseline `YOLO26s-seg` với mô hình nghiên cứu `YOLO26s-TSVM-FP32-seg`, đồng thời cung cấp hai client độc lập: website Spring Boot và ứng dụng Flutter Mobile. FastAPI là dịch vụ AI inference dùng chung.
 
 > **Cảnh báo:** PolypVision không phải thiết bị y tế và không cung cấp chẩn đoán lâm sàng.
