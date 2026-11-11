@@ -2,7 +2,7 @@
 
 > **Đề tài:** “Nghiên cứu phương pháp tích hợp VMamba vào mô hình YOLO26-seg trong phân đoạn polyp từ ảnh nội soi đại trực tràng.” (CNTT-KLCN182)
 
-> **Mã nguồn nghiên cứu** (dữ liệu, huấn luyện, số liệu, báo cáo): <https://github.com/Okeydokey8525/DL_Poylp_v26_VMamba_TestDemo> (nhánh `Okeydokey`).
+> **Mã nguồn nghiên cứu** (dữ liệu, huấn luyện, số liệu, báo cáo): <https://github.com/Okeydokey8525/KLCN183>.
 
 PolypVision là website phục vụ nghiên cứu phân đoạn polyp trên ảnh nội soi đại trực tràng. Website cho phép chạy và so sánh mô hình gốc `YOLO26s-seg` với mô hình đề xuất `YOLO26s-TSVM-FP32-seg` (YOLO26s-seg + C2TSVMamba) trên ảnh và video.
 
