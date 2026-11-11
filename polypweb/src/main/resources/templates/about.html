@@ -125,11 +125,14 @@
                     <span class="section-index">05</span>
                     <h2>Giới hạn của phiên bản</h2>
                     <ul class="limitation-list">
-                        <li><i class="bi bi-dash-circle"></i><span>Ảnh gốc và overlay được lưu trong storage cục bộ; chưa có object storage hoặc cloud.</span></li>
-                        <li><i class="bi bi-dash-circle"></i><span>Chỉ kích hoạt hai checkpoint small
-                            <code>YOLO26s-seg</code> và <code>YOLO26s-TSVM-FP32-seg</code>; tám cấu hình còn lại chưa được nối vào API.</span></li>
-                        <li><i class="bi bi-dash-circle"></i><span>Đã có Spring Security và ownership; chưa có OAuth, JWT hoặc xác thực đa yếu tố.</span></li>
-                        <li><i class="bi bi-dash-circle"></i><span>MongoDB chỉ lưu đường dẫn tương đối và metadata, không lưu chuỗi Base64.</span></li>
+                        <li><i class="bi bi-dash-circle"></i><span>Website chỉ dùng hai mô hình của lượt huấn luyện seed 15:
+                            <code>YOLO26s-seg</code> và <code>YOLO26s-TSVM-FP32-seg</code>. Các biến thể tách thành phần, PraNet và U-Net
+                            chỉ có trong phần thực nghiệm của báo cáo.</span></li>
+                        <li><i class="bi bi-dash-circle"></i><span>Ảnh, video và kết quả được lưu trên máy chạy ứng dụng; chưa có lưu trữ đám mây.
+                            MongoDB chỉ lưu đường dẫn tệp và thông tin lượt phân tích.</span></li>
+                        <li><i class="bi bi-dash-circle"></i><span>Video được phân tích sau khi tải lên; chưa kết nối trực tiếp với máy nội soi
+                            để xử lý theo thời gian thực.</span></li>
+                        <li><i class="bi bi-dash-circle"></i><span>Đăng nhập bằng email và mật khẩu; chưa có xác thực hai lớp.</span></li>
                     </ul>
                 </article>
 

@@ -32,37 +32,41 @@
                     </div>
                 </div>
                 <div class="col-lg-6">
-                    <div class="ai-visual-card" role="img"
-                         aria-label="Minh họa quy trình từ ảnh nội soi đầu vào, qua mô hình AI đến mask phân đoạn">
+                    <figure class="ai-visual-card mb-0">
                         <div class="visual-topbar">
                             <div>
                                 <span class="status-dot"></span>
                                 <span>PolypVision workspace</span>
                             </div>
-                            <span class="visual-mode">DEMO</span>
+                            <span class="visual-mode">KẾT QUẢ THẬT</span>
                         </div>
                         <div class="visual-canvas">
-                            <div class="endoscopy-frame">
+                            <div class="endoscopy-frame real-frame">
                                 <span class="frame-label">Ảnh đầu vào</span>
-                                <div class="endoscopy-core"></div>
-                                <div class="scan-line"></div>
+                                <img th:src="@{/images/home/polyp-dau-vao.jpg}" src="/images/home/polyp-dau-vao.jpg"
+                                     alt="Ảnh nội soi đại tràng có polyp, tập kiểm định Kvasir-SEG"
+                                     width="626" height="547" loading="eager">
                             </div>
                             <div class="visual-flow" aria-hidden="true">
                                 <i class="bi bi-arrow-right"></i>
                                 <span>AI</span>
                             </div>
-                            <div class="endoscopy-frame result-frame">
+                            <div class="endoscopy-frame real-frame result-frame">
                                 <span class="frame-label">Mask phân đoạn</span>
-                                <div class="endoscopy-core"></div>
-                                <div class="mock-mask"></div>
-                                <span class="confidence-chip">93,4%</span>
+                                <img th:src="@{/images/home/polyp-ket-qua-tsvm.jpg}" src="/images/home/polyp-ket-qua-tsvm.jpg"
+                                     alt="Mask phân đoạn polyp do mô hình YOLO26s-seg + C2TSVMamba dự đoán"
+                                     width="626" height="547" loading="eager">
+                                <span class="confidence-chip" title="Độ tin cậy mô hình trả về">94,2%</span>
                             </div>
                         </div>
                         <div class="visual-footer">
-                            <div><span>Model</span><strong>YOLO26 + VMamba</strong></div>
-                            <div><span>Output</span><strong>Segmentation mask</strong></div>
+                            <div><span>Mô hình</span><strong>YOLO26s-seg + C2TSVMamba</strong></div>
+                            <div><span>Đầu ra</span><strong>Mask phân đoạn polyp</strong></div>
                         </div>
-                    </div>
+                        <figcaption class="visual-caption">
+                            Ảnh thuộc tập kiểm định Kvasir-SEG (không dùng để huấn luyện), kết quả do mô hình đề xuất (seed 15) dự đoán.
+                        </figcaption>
+                    </figure>
                 </div>
             </div>
             <div class="research-stats row g-3">

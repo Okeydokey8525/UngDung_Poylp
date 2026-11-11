@@ -11,8 +11,7 @@ Nhóm **không đính kèm bản sao dữ liệu**, vì CSDL đang dùng chỉ c
 Khi Spring Boot khởi động lần đầu với một CSDL rỗng:
 1. Spring Data MongoDB tự tạo ba collection bên dưới khi có bản ghi đầu tiên.
 2. `UserAccountIndexInitializer` và `DiagnosisHistoryIndexInitializer` tự tạo chỉ mục.
-3. `AdminSeedRunner` tạo tài khoản quản trị nếu đặt ba biến `POLYPVISION_ADMIN_EMAIL`, `POLYPVISION_ADMIN_PASSWORD`, `POLYPVISION_ADMIN_NAME`. Mật khẩu chỉ lưu dạng băm (BCrypt).
-4. Tài khoản người dùng thường đăng ký trên trang `/register`.
+3. Người dùng tự đăng ký tài khoản trên trang `/register`. Mật khẩu chỉ lưu dạng băm (BCrypt).
 
 Nếu muốn tạo sẵn cấu trúc CSDL (ba collection và các chỉ mục, không có dữ liệu) trước khi chạy website, dùng script đi kèm:
 
@@ -32,7 +31,7 @@ mongosh "mongodb://localhost:27017/polypweb" khoi_tao_csdl.js
 | `fullName` | String | |
 | `email` | String | chỉ mục duy nhất |
 | `passwordHash` | String | BCrypt |
-| `role` | `USER` / `ADMIN` | |
+| `role` | String | tài khoản đăng ký có giá trị `USER` |
 | `enabled` | boolean | |
 | `createdAt`, `updatedAt` | LocalDateTime | |
 

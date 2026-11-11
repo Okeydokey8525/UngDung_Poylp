@@ -575,6 +575,29 @@ a:focus-visible {
     font-weight: 800;
 }
 
+.endoscopy-frame.real-frame {
+    aspect-ratio: 626 / 547;
+    background: #111;
+}
+
+.endoscopy-frame.real-frame::after {
+    content: none;
+}
+
+.endoscopy-frame.real-frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.visual-caption {
+    padding: 0 1.25rem 1rem;
+    color: var(--pv-muted);
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
 .visual-footer {
     display: grid;
     grid-template-columns: 1fr 1fr;
