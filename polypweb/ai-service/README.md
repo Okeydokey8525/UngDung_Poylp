@@ -1,11 +1,9 @@
 # PolypVision FastAPI AI Service
 
-FastAPI AI Service là lớp inference dùng chung cho hai client độc lập của PolypVision:
+FastAPI AI Service là lớp inference của PolypVision. Website Spring Boot gọi các endpoint legacy; nhóm endpoint `/api/v1` dành cho client gọi trực tiếp (ứng dụng điện thoại, không nằm trong repo này):
 
 ```text
-Spring Boot Web ─┐
-                 ├─→ FastAPI → YOLO26s-seg / YOLO26s-TSVM-FP32-seg
-Flutter Mobile ──┘
+Spring Boot Web ─→ FastAPI → YOLO26s-seg / YOLO26s-TSVM-FP32-seg
 ```
 
 Service tải checkpoint khi khởi động, kiểm tra ảnh, chạy model và trả JSON cùng overlay Base64. Service không quản lý tài khoản, MongoDB, lịch sử hay file ảnh lâu dài.

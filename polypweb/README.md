@@ -1,6 +1,6 @@
 # PolypVision Web — Spring Boot
 
-Module Web cung cấp giao diện Thymeleaf, tài khoản, lịch sử và quản trị cho PolypVision. Spring Boot là client của FastAPI qua legacy contract; Flutter Mobile Direct AI không đi qua module này.
+Module Web cung cấp giao diện Thymeleaf, tài khoản, lịch sử và quản trị cho PolypVision. Spring Boot là client của FastAPI qua legacy contract.
 
 ```text
 Browser → Spring Boot → FastAPI → AI Models
@@ -266,7 +266,7 @@ Source hiện có:
 
 ## 13. Spring REST API được giữ cho legacy/regression
 
-Module có `/api/v1/**` cho auth, dashboard, profile, diagnosis và comparison theo session/CSRF. API này thuộc Spring-backed flow cũ và vẫn được test hồi quy. Flutter production hiện dùng Direct AI router và **không** khởi tạo client/session/CSRF của Spring.
+Module có `/api/v1/**` cho auth, dashboard, profile, diagnosis và comparison theo session/CSRF. API này thuộc flow cũ và vẫn được test hồi quy; website hiện không dùng tới.
 
 Không nhầm Spring `/api/v1/**` với FastAPI `/api/v1/**`: chúng là contract trên hai service/base URL khác nhau.
 
@@ -333,4 +333,3 @@ Web lưu tài khoản, ảnh gốc, overlay, metadata và lịch sử theo chứ
 - `.venv`, `__pycache__`, pytest cache.
 - Checkpoint `.pt`, trừ hai trọng số seed 15 đang dùng (`ai-service/models/yolo26s-seg-best.pt`, `yolo26s-tsvm-fp32-best.pt`).
 - Password, credential, `.env` hoặc secret.
-- Keystore/signing file của Mobile.

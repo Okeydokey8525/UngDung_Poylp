@@ -1,0 +1,19 @@
+# Ghi chú cá nhân, tài khoản thử nghiệm
+GhiChu.txt
+
+# Ứng dụng điện thoại (không đưa lên repo này)
+app_polyp/
+
+# Cấu hình IDE và công cụ trợ lý
+.vscode/
+.idea/
+.agents/
+.codex/
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# Kết quả chạy thử, file tạm
+runs/
+**/__pycache__/
+*.log
